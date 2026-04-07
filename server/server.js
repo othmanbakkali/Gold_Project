@@ -51,6 +51,10 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
 app.use(cors());
 app.use(express.json());
 
+// Servir les fichiers statiques du dossier client/dist en production
+// (Une fois que 'npm run build' a été exécuté dans le dossier client)
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
 // Obtenir le prix actuel
 app.get('/api/price', (req, res) => {
   db.get('SELECT * FROM gold_prices ORDER BY id DESC LIMIT 1', (err, row) => {
@@ -91,6 +95,12 @@ app.post('/api/price', (req, res) => {
     
     res.json({ success: true, data: newRecord });
   });
+});
+
+// Route Fallback pour les applications React (SPA)
+// Toutes les routes non reconnues par l'API doivent renvoyer vers l'index.html de React
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
 });
 
 // Lancement du serveur
