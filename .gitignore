@@ -1,0 +1,23 @@
+# Dependency directories
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build directories
+client/dist/
+
+# Env files
+.env
+server/.env
+client/.env
+
+# Local databases
+# server/database.sqlite  # Décommentez si vous ne voulez pas envoyer la base initiale
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
