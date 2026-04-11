@@ -3,7 +3,7 @@ import { Save, Lock, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { translations } from '../translations';
 
-const SERVER_URL = 'http://localhost:3001';
+const SERVER_URL = 'https://gold-project-backend.onrender.com';
 
 export default function AdminPanel() {
   const [price, setPrice] = useState('');
