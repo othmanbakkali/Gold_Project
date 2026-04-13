@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { Download } from 'lucide-react';
 import { translations } from '../translations';
 
-const SOCKET_SERVER_URL = 'https://gold-project-backend.onrender.com';
+const SOCKET_SERVER_URL = 'https://goldprojectbackend-production.up.railway.app/';
 
 export default function TVDisplay() {
   const [priceData, setPriceData] = useState(null);
