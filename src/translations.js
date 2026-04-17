@@ -56,7 +56,7 @@ export const translations = {
       disconnected: "تم قطع الاتصال بالخادم. في انتظار إعادة الاتصال...",
       reconnecting: "تعذر الاتصال بالخادم. جاري إعادة المحاولة...",
       pricePrefix: "السعر الحالي",
-      priceSuffix: "درهم/غرام + <b class='animate-service'>الصنعة</b>"
+      priceSuffix: "درهم/غرام + <b class='animate-service'>المصنعية</b>"
     },
     admin: {
       title: "لوحة التحكم",

@@ -3,10 +3,11 @@ import { Save, Lock, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { translations } from '../translations';
 
-const SERVER_URL = 'https://gold-project-backend.onrender.com';
+const SERVER_URL = 'https://goldprojectbackend-production.up.railway.app';
 
 export default function AdminPanel() {
   const [price, setPrice] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
@@ -20,8 +21,15 @@ export default function AdminPanel() {
         const response = await fetch(`${SERVER_URL}/api/price`);
         if (response.ok) {
           const data = await response.json();
-          if (data && data.price) {
-            setPrice(data.price.toString());
+          
+          if (data) {
+            if (data.price !== undefined) {
+              setPrice(data.price.toString());
+            }
+
+            if (data.lastUpdated) {
+              setLastUpdated(data.lastUpdated); // ✅ AJOUT
+            }
           }
         }
       } catch (err) {
@@ -43,7 +51,7 @@ export default function AdminPanel() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          price: parseFloat(price),
+          newPrice: parseFloat(price),
           password: password,
           currency: 'MAD', // Hardcoded to MAD
           unit: 'g'
@@ -59,6 +67,9 @@ export default function AdminPanel() {
         });
         // Clear password for security, keep price
         setPassword('');
+        if (data.lastUpdated) {
+          setLastUpdated(data.lastUpdated);
+        }
       } else {
         setStatus({
           type: 'error',
@@ -147,6 +158,12 @@ export default function AdminPanel() {
         {status.message && (
           <div className={`status-message status-${status.type}`}>
             {status.message}
+          </div>
+        )}
+        {/* ✅ AJOUT ICI */}
+        {lastUpdated && (
+          <div style={{ marginTop: '1rem', color: 'gray', fontSize: '0.9rem' }}>
+            🕒 Dernière mise à jour : {new Date(lastUpdated).toLocaleString()}
           </div>
         )}
       </div>

@@ -1,9 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Download } from 'lucide-react';
+import { Download, Volume2, VolumeX } from 'lucide-react';
 import { translations } from '../translations';
 
-const SOCKET_SERVER_URL = 'https://goldprojectbackend-production.up.railway.app/';
+const SOCKET_SERVER_URL = 'https://goldprojectbackend-production.up.railway.app';
+
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+  // Convertir le format SQL 'YYYY-MM-DD HH:MM:SS' en format ISO valide
+  if (typeof dateStr === 'string' && dateStr.includes(' ') && !dateStr.includes('T')) {
+    return new Date(dateStr.replace(' ', 'T') + 'Z');
+  }
+  return new Date(dateStr);
+};
 
 export default function TVDisplay() {
   const [priceData, setPriceData] = useState(null);
@@ -12,7 +21,42 @@ export default function TVDisplay() {
   const t = translations[lang].tv;
   const [error, setError] = useState(null);
   const priceCardRef = useRef(null);
+  const audioRef = useRef(null);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Try to play audio on mount. If blocked, it will gracefully fail and user can click button.
+  useEffect(() => {
+    if (audioRef.current) {
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setIsPlaying(true);
+        }).catch((err) => {
+          console.log("Audio autoplay was blocked. User must interact first.", err);
+          setIsPlaying(false);
+        });
+      }
+    }
+  }, []);
+
+  const toggleAudio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    }
+  };
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -115,6 +159,11 @@ export default function TVDisplay() {
 
   return (
     <div className="tv-container" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Background Music */}
+      <audio ref={audioRef} loop src="/bourse.mp3">
+        Votre navigateur ne prend pas en charge l'élément audio.
+      </audio>
+
       {/* Language switcher */}
       <div style={{ position: 'absolute', top: '1rem', right: lang === 'ar' ? 'auto' : '1rem', left: lang === 'ar' ? '1rem' : 'auto', zIndex: 10 }}>
         <select 
@@ -126,6 +175,27 @@ export default function TVDisplay() {
           <option value="en" style={{color: '#000'}}>English</option>
           <option value="ar" style={{color: '#000'}}>العربية</option>
         </select>
+        
+        <button 
+          onClick={toggleAudio}
+          title={isPlaying ? "Mute music" : "Play music"}
+          style={{ 
+            marginLeft: '1rem', 
+            background: isPlaying ? 'rgba(251, 191, 36, 0.2)' : 'rgba(239, 68, 68, 0.2)', 
+            color: isPlaying ? 'var(--gold-primary)' : '#ef4444', 
+            border: `1px solid ${isPlaying ? 'var(--gold-primary)' : '#ef4444'}`, 
+            padding: '6px 12px', 
+            borderRadius: '5px', 
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.9rem'
+          }}
+        >
+          {isPlaying ? <Volume2 size={16} /> : <VolumeX size={16} />} 
+          {isPlaying ? (lang === 'fr' ? 'Musique ON' : lang === 'en' ? 'Music ON' : 'موسيقى مفعلة') : (lang === 'fr' ? 'Musique OFF' : lang === 'en' ? 'Music OFF' : 'موسيقى معطلة')}
+        </button>
         
         {deferredPrompt && (
           <button 
@@ -151,12 +221,12 @@ export default function TVDisplay() {
 
       {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
       
-      <img src="/logo.png?v=2" alt="Logo Association" style={{ height: '140px', marginBottom: '1rem', objectFit: 'contain' }} />
+      <img src="/logo.png?v=2" alt="Logo Association" className="logo-img" />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-        <img src="/flag.png?v=2" alt="Moroccan Flag" className="flag-wave" style={{ height: '40px', width: '40px', objectFit: 'contain' }} />
+        <img src="/flag.png?v=2" alt="Moroccan Flag" className="flag-wave flag-img" />
         <h1 className="tv-title" style={{ margin: 0 }}>{t.title}</h1>
-        <img src="/flag.png?v=2" alt="Moroccan Flag" className="flag-wave" style={{ height: '40px', width: '40px', objectFit: 'contain' }} />
+        <img src="/flag.png?v=2" alt="Moroccan Flag" className="flag-wave flag-img" />
       </div>
       
       <div className="price-card" ref={priceCardRef}>
@@ -172,11 +242,25 @@ export default function TVDisplay() {
       </div>
       
       <div className="last-updated">
-        {t.updatedAt} {priceData?.date ? new Date(priceData.date).toLocaleTimeString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : 'fr-FR', {
+        {t.updatedAt} {priceData?.date ? parseDate(priceData.date)?.toLocaleString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : 'fr-FR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit'
         }) : '...'}
+      </div>
+      
+      <div className="current-time" style={{ marginTop: '0.5rem', fontSize: '1.2rem', color: 'var(--gold-primary)', opacity: 0.8 }}>
+        {lang === 'ar' ? 'الوقت الحالي' : lang === 'en' ? 'Current time' : 'Heure actuelle'} : {currentTime.toLocaleString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : 'fr-FR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })}
       </div>
     </div>
   );

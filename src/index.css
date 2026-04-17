@@ -143,6 +143,19 @@ body {
   opacity: 0.7;
 }
 
+/* Image classes for flexibility */
+.logo-img {
+  height: 140px;
+  margin-bottom: 1rem;
+  object-fit: contain;
+}
+
+.flag-img {
+  height: 40px;
+  width: 40px;
+  object-fit: contain;
+}
+
 /* Animations */
 .price-update-glow {
   animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1);
@@ -332,12 +345,46 @@ body {
 }
 
 /* Responsiveness for smaller screens if needed */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .gold-price {
     font-size: 6rem;
   }
-
+  .tv-title {
+    font-size: 2rem;
+  }
   .price-card {
-    padding: 3rem 2rem;
+    padding: 3rem 4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .tv-container {
+    padding: 1rem;
+  }
+  .price-card {
+    border-radius: 8px 40px 8px 40px;
+    padding: 2rem 1.5rem;
+    width: 95%;
+  }
+  .gold-price {
+    font-size: 4.5rem;
+  }
+  .currency-unit {
+    font-size: 1.5rem;
+  }
+  .tv-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .logo-img {
+    height: 80px;
+  }
+  .flag-img {
+    height: 25px;
+    width: 25px;
+  }
+  .last-updated, .current-time {
+    font-size: 0.9rem;
+    margin-top: 1rem;
   }
 }

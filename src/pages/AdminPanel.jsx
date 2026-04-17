@@ -3,10 +3,19 @@ import { Save, Lock, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { translations } from '../translations';
 
-const SERVER_URL = 'https://goldprojectbackend-production.up.railway.app/';
+const SERVER_URL = 'https://goldprojectbackend-production.up.railway.app';
+
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+  if (typeof dateStr === 'string' && dateStr.includes(' ') && !dateStr.includes('T')) {
+    return new Date(dateStr.replace(' ', 'T') + 'Z');
+  }
+  return new Date(dateStr);
+};
 
 export default function AdminPanel() {
   const [price, setPrice] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
@@ -20,8 +29,15 @@ export default function AdminPanel() {
         const response = await fetch(`${SERVER_URL}/api/price`);
         if (response.ok) {
           const data = await response.json();
-          if (data && data.price) {
-            setPrice(data.price.toString());
+          
+          if (data) {
+            if (data.price !== undefined) {
+              setPrice(data.price.toString());
+            }
+
+            if (data.date) {
+              setLastUpdated(data.date);
+            }
           }
         }
       } catch (err) {
@@ -43,7 +59,7 @@ export default function AdminPanel() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          price: parseFloat(price),
+          newPrice: parseFloat(price),
           password: password,
           currency: 'MAD', // Hardcoded to MAD
           unit: 'g'
@@ -59,6 +75,9 @@ export default function AdminPanel() {
         });
         // Clear password for security, keep price
         setPassword('');
+        if (data.data && data.data.date) {
+          setLastUpdated(data.data.date);
+        }
       } else {
         setStatus({
           type: 'error',
@@ -147,6 +166,19 @@ export default function AdminPanel() {
         {status.message && (
           <div className={`status-message status-${status.type}`}>
             {status.message}
+          </div>
+        )}
+        {/* ✅ AJOUT ICI */}
+        {lastUpdated && (
+          <div style={{ marginTop: '1rem', color: 'gray', fontSize: '0.9rem' }}>
+            🕒 {lang === 'ar' ? 'آخر تحديث' : lang === 'en' ? 'Last update' : 'Dernière mise à jour'} : {parseDate(lastUpdated)?.toLocaleString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : 'fr-FR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })}
           </div>
         )}
       </div>
