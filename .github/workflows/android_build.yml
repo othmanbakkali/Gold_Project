@@ -59,6 +59,9 @@ jobs:
           # Mise à jour temporaire du package ID et du nom
           sed -i 's/com.gold.app/com.gold.admin/g' android/app/build.gradle
           sed -i 's/PrixOr/PrixOr Admin/g' android/app/src/main/res/values/strings.xml
+          # Désactiver Google Services pour éviter l'erreur de package manquant
+          sed -i 's/apply plugin: "com.google.gms.google-services"/\/\/ apply plugin: "com.google.gms.google-services"/g' android/app/build.gradle
+          sed -i "s/apply plugin: 'com.google.gms.google-services'/\/\/ apply plugin: 'com.google.gms.google-services'/g" android/app/build.gradle
           chmod +x android/gradlew
           npx cap sync android
           cd android && ./gradlew assembleDebug && cd ..
