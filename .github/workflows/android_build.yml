@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APKs
 
 on:
   push:
@@ -38,19 +38,69 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Capacitor Sync
+      - name: Build Client APK
         run: |
           cd client
+          cp capacitor.config.json capacitor.config.json.bak
+          chmod +x android/gradlew
           npx cap sync android
+          cd android && ./gradlew assembleDebug && cd ..
+          mv android/app/build/outputs/apk/debug/app-debug.apk ../PrixOr-Client.apk
 
-      - name: Build APK with Gradle
-        run: |
-          cd client/android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Build Admin APK
+        run: |  
+          cd client
+          cp capacitor.admin.config.json capacitor.config.json
+          # Mise à jour temporaire du package ID et du nom
+          sed -i 's/com.gold.app/com.gold.admin/g' android/app/build.gradle
+          sed -i 's/PrixOr/PrixOr Admin/g' android/app/src/main/res/values/strings.xml
+          chmod +x android/gradlew
+          npx cap sync android
+          cd android && ./gradlew assembleDebug && cd ..
+          mv android/app/build/outputs/apk/debug/app-debug.apk ../PrixOr-Admin.apk
 
-      - name: Upload APK Artifact
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: PrixOr-app-debug
-          path: client/android/app/build/outputs/apk/debug/app-debug.apk
+          name: PrixOr-Dual-APKs
+          path: |
+            PrixOr-Client.apk
+            PrixOr-Admin.apk
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd client
+          npm install --legacy-peer-deps
+
+      - name: Build Web App
+        run: |
+          cd client
+          npm run build
+
+      - name: Setup CocoaPods
+        run: |
+          cd client/ios/App
+          pod install
+
+      - name: Build iOS Client
+        run: |
+          cd client
+          cp capacitor.config.json.bak capacitor.config.json
+          npx cap sync ios
+          # Note: Le build IPA complet demande un certificat de signature.
+          # On se contente ici de vérifier que le projet compile.
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -destination 'generic/platform=iOS' -allowProvisioningUpdates build
+

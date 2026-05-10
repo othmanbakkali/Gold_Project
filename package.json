@@ -5,7 +5,8 @@
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
-    "build": "cd client && npm install && npm run build"
+    "build": "cd client && npm install && npm run build",
+    "deploy": "cd client && npm run deploy"
   },
   "dependencies": {
     "cors": "^2.8.6",

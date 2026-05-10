@@ -373,7 +373,7 @@ export default function HomePage() {
           </div>
           <a href="https://goldprojectbackend-production.up.railway.app/PrixOr.apk" className="hp-download-btn" download>
             <Smartphone size={16} />
-            <span>{hp_t.downloadApp}</span>
+            <span>{hp_t.downloadApp} (v1.1.0)</span>
           </a>
         </div>
       </aside>
