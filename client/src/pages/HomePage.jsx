@@ -409,7 +409,7 @@ export default function HomePage() {
             <Bell size={20} />
             <span>{lang === 'ar' ? 'تفعيل التنبيهات' : 'Activer Notifications'}</span>
           </button>
-          
+
           <button className="hp-sidebar-btn" onClick={toggleAudio}>
             {isPlaying ? <Volume2 size={20} /> : <VolumeX size={20} />}
             <span>{isPlaying ? hp_t.musicOn : hp_t.musicOff}</span>
@@ -422,13 +422,13 @@ export default function HomePage() {
         </div>
         <div className="hp-sidebar-admin">
           <div className="hp-admin-title">{lang === 'ar' ? 'منطقة الإدارة' : 'Zone Administration'}</div>
-          <a href="/PrixOr-Admin.apk" className="hp-admin-download" download>
+          <a href="https://goldprojectbackend-production.up.railway.app/PrixOr.apk" className="hp-admin-download" download>
             <ShieldCheck size={18} />
-            <span>{lang === 'ar' ? 'تحميل تطبيق المسؤول (Android)' : 'App Admin (Android)'}</span>
+            <span>{lang === 'ar' ? 'تحميل تطبيق المسؤول (Admin)' : 'App Admin (Android)'}</span>
           </a>
           <div className="hp-admin-info">
-            {lang === 'ar' 
-              ? 'بالنسبة لـ iPhone: اذهب إلى صفحة الإدارة واستخدم "إضافة إلى الشاشة الرئيسية"' 
+            {lang === 'ar'
+              ? 'بالنسبة لـ iPhone: اذهب إلى صفحة الإدارة واستخدم "إضافة إلى الشاشة الرئيسية"'
               : 'Pour iPhone : Allez sur la page Admin et utilisez "Sur l\'écran d\'accueil"'}
           </div>
         </div>
@@ -451,9 +451,9 @@ export default function HomePage() {
             <button className="hp-menu-btn" onClick={() => setSidebarOpen(o => !o)}>
               {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
-            <a href="/PrixOr-Admin.apk" className="hp-ctrl-btn hp-admin-btn" download title={lang === 'ar' ? 'تحميل تطبيق المسؤول' : 'Télécharger App Admin'}>
+            <a href="https://goldprojectbackend-production.up.railway.app/PrixOr-Admin.apk" className="hp-ctrl-btn hp-admin-btn" download title={lang === 'ar' ? 'تحميل تطبيق المسؤول' : 'Télécharger App Admin'}>
               <ShieldCheck size={16} />
-              <span className="hp-admin-text">{lang === 'ar' ? 'تطبيق المسؤول' : 'App Admin'}</span>
+              <span className="hp-admin-text">{lang === 'ar' ? 'تطبيق المسؤول (Admin)' : 'App Admin'}</span>
             </a>
             <button className="hp-ctrl-btn" onClick={cycleLang} title="تغيير اللغة">
               <span>🌐</span><span>{lang.toUpperCase()}</span>
