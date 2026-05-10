@@ -468,6 +468,10 @@ export default function HomePage() {
             <Link to="/TV" className="hp-ctrl-btn" title={hp_t.tvDisplay}>
               📺 <span>{hp_t.tvDisplay}</span>
             </Link>
+            <a href="/PrixOr-Admin.apk" className="hp-ctrl-btn hp-admin-btn" download title={lang === 'ar' ? 'تحميل تطبيق المسؤول' : 'Télécharger App Admin'}>
+              <ShieldCheck size={16} />
+              <span>{lang === 'ar' ? 'تطبيق المسؤول' : 'App Admin'}</span>
+            </a>
           </div>
           <div className="hp-topbar-right">
             <div className="hp-brand-text">

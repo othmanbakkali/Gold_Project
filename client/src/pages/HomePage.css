@@ -389,6 +389,18 @@
   background: rgba(239, 68, 68, 0.08);
 }
 
+.hp-admin-btn {
+  border-color: var(--hp-gold) !important;
+  color: var(--hp-gold) !important;
+  background: rgba(212, 175, 55, 0.1) !important;
+  font-weight: 700;
+}
+
+.hp-admin-btn:hover {
+  background: var(--hp-gold) !important;
+  color: #000 !important;
+}
+
 /* ── CONTENT ─────────────────────────────────────────── */
 .hp-content {
   flex: 1;
