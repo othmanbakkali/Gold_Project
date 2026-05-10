@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const http = require('http');
 const socketIo = require('socket.io');
 const sqlite3 = require('sqlite3').verbose();
@@ -113,19 +114,44 @@ app.use(cors());
 app.use(express.json());
 
 // Configuration des fichiers statiques (Frontend)
-const clientDistPath = path.resolve(__dirname, '../client/dist');
+const clientDistPath = path.resolve(__dirname, './public/dist');
 console.log('Serving static files from:', clientDistPath);
 
 app.use(express.static(clientDistPath));
+
+// Route pour télécharger l'APK directement
+app.get('/PrixOr.apk', (req, res) => {
+  const apkPath = path.resolve(__dirname, './public/PrixOr.apk');
+  if (fs.existsSync(apkPath)) {
+    res.download(apkPath);
+  } else {
+    res.status(404).send('APK non trouvé sur le serveur');
+  }
+});
 
 // Route de santé pour vérifier que le serveur est vivant
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'Server is running', 
+    dirname: __dirname,
     staticPath: clientDistPath,
-    apkExists: fs.existsSync(path.join(clientDistPath, 'PrixOr.apk'))
+    staticPathExists: fs.existsSync(clientDistPath),
+    apkExists: fs.existsSync(path.join(__dirname, './public/PrixOr.apk')),
+    filesInPublic: fs.existsSync(path.join(__dirname, './public')) ? fs.readdirSync(path.join(__dirname, './public')) : 'public folder not found'
   });
+});
+
+app.get('/', (req, res) => {
+  if (fs.existsSync(path.join(clientDistPath, 'index.html'))) {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  } else {
+    res.send(`<h1>Serveur PrixOr actif</h1>
+              <p>Le dossier site web n'a pas été trouvé, mais le serveur fonctionne.</p>
+              <p><a href="/PrixOr.apk" style="padding: 10px 20px; background: gold; color: black; text-decoration: none; font-weight: bold; border-radius: 5px;">Télécharger l'APK directement ici</a></p>
+              <hr>
+              <p>Diagnostic: ${clientDistPath}</p>`);
+  }
 });
 
 // ── API: Enregistrer un token FCM ─────────────────────────────────────────────

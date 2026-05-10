@@ -371,7 +371,7 @@ export default function HomePage() {
             <div>{formattedDate}</div>
             <div className="hp-clock">{formattedClock}</div>
           </div>
-          <a href="/PrixOr.apk" className="hp-download-btn" download>
+          <a href="https://goldprojectbackend-production.up.railway.app/PrixOr.apk" className="hp-download-btn" download>
             <Smartphone size={16} />
             <span>{hp_t.downloadApp}</span>
           </a>
