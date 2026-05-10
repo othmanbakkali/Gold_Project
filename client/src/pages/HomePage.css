@@ -394,6 +394,12 @@
   color: var(--hp-gold) !important;
   background: rgba(212, 175, 55, 0.1) !important;
   font-weight: 700;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.hp-admin-btn .hp-admin-text {
+  display: block !important; /* Force visible on mobile */
+  font-size: 0.7rem;
 }
 
 .hp-admin-btn:hover {

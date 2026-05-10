@@ -451,6 +451,10 @@ export default function HomePage() {
             <button className="hp-menu-btn" onClick={() => setSidebarOpen(o => !o)}>
               {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
+            <a href="/PrixOr-Admin.apk" className="hp-ctrl-btn hp-admin-btn" download title={lang === 'ar' ? 'تحميل تطبيق المسؤول' : 'Télécharger App Admin'}>
+              <ShieldCheck size={16} />
+              <span className="hp-admin-text">{lang === 'ar' ? 'تطبيق المسؤول' : 'App Admin'}</span>
+            </a>
             <button className="hp-ctrl-btn" onClick={cycleLang} title="تغيير اللغة">
               <span>🌐</span><span>{lang.toUpperCase()}</span>
             </button>
@@ -468,10 +472,6 @@ export default function HomePage() {
             <Link to="/TV" className="hp-ctrl-btn" title={hp_t.tvDisplay}>
               📺 <span>{hp_t.tvDisplay}</span>
             </Link>
-            <a href="/PrixOr-Admin.apk" className="hp-ctrl-btn hp-admin-btn" download title={lang === 'ar' ? 'تحميل تطبيق المسؤول' : 'Télécharger App Admin'}>
-              <ShieldCheck size={16} />
-              <span>{lang === 'ar' ? 'تطبيق المسؤول' : 'App Admin'}</span>
-            </a>
           </div>
           <div className="hp-topbar-right">
             <div className="hp-brand-text">
