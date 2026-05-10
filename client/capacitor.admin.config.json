@@ -1,5 +1,9 @@
 {
   "appId": "com.gold.admin",
   "appName": "PrixOr Admin",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://gold.techniskane.com/#/admin",
+    "allowNavigation": ["gold.techniskane.com"]
+  }
 }

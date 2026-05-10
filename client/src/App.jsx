@@ -30,6 +30,22 @@ function PWAManifestManager() {
   return null;
 }
 
+function RedirectHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // If we are on mobile and the App ID is the Admin one, redirect to /admin
+    if (Capacitor.isNativePlatform()) {
+      // In a real app, we would use App.getInfo() but we can check a global or meta
+      // For now, let's assume we can use a window variable set in index.html or just detect it
+      // Alternatively, we can check the URL if we set it in capacitor.config
+    }
+  }, []);
+
+  return null;
+}
+
 function App() {
   useEffect(() => {
     notificationService.init();
@@ -38,6 +54,7 @@ function App() {
   return (
     <HashRouter>
       <PWAManifestManager />
+      <RedirectHandler />
       <Routes>
         <Route path="/"      element={<HomePage />} />
         <Route path="/TV"    element={<TVDisplay />} />
