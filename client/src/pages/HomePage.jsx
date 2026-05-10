@@ -218,6 +218,8 @@ export default function HomePage() {
   const [priceFlash, setPriceFlash] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lang, setLang] = useState(localStorage.getItem('hp_lang') || 'ar');
+  const [showToast, setShowToast] = useState(false);
+  const [toastData, setToastData] = useState(null);
   const audioRef = useRef(null);
   
   const t = translations[lang] || translations['ar'];
@@ -304,9 +306,29 @@ export default function HomePage() {
       reconnection: true,
       reconnectionAttempts: Infinity,
     });
+    
+    // Demander la permission au démarrage sur mobile/web
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     socket.on('priceUpdate', (data) => {
       setPriceData(data);
       setPriceFlash(true);
+      
+      // Toast Notification visuelle
+      setToastData(data);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+
+      // Système Notification (Web Push)
+      if (Notification.permission === 'granted') {
+        new Notification(lang === 'ar' ? 'تحديث سعر الذهب' : 'Prix de l\'Or à jour', {
+          body: `${Math.floor(data.price)} ${data.currency} / ${data.unit}`,
+          icon: '/icon.png'
+        });
+      }
+
       setTimeout(() => setPriceFlash(false), 2500);
       const entry = { price: parseFloat(data.price), date: normalizeDate(data.date) };
       setHistory(prev => { const u = addEntryIfNew(prev, entry); saveLocalHistory(u); return u; });
@@ -666,6 +688,16 @@ export default function HomePage() {
           </footer>
         </div>
 
+        {/* TOAST NOTIFICATION */}
+        {showToast && toastData && (
+          <div className="hp-toast">
+            <div className="hp-toast-icon">💰</div>
+            <div className="hp-toast-content">
+              <strong>{lang === 'ar' ? 'تحديث السعر' : 'Mise à jour du prix'}</strong>
+              <span>{Math.floor(toastData.price)} {toastData.currency} / {toastData.unit}</span>
+            </div>
+          </div>
+        )}
       </main>
 
       {sidebarOpen && (
