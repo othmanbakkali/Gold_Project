@@ -1,19 +1,21 @@
 {
-  "name": "gold_project",
+  "name": "gold-project-root",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Root package for Railway deployment",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "concurrently \"npm run start --prefix server\" \"npm run dev --prefix client\"",
-    "start:prod": "node server/server.js",
-    "build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
-    "install:all": "npm install && npm install --prefix server && npm install --prefix client"
+    "start": "node backend/server.js",
+    "build": "cd client && npm install && npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "concurrently": "^9.2.1",
-    "gh-pages": "^6.3.0"
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.9.0",
+    "socket.io": "^4.8.3",
+    "sqlite3": "5.1.7"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
