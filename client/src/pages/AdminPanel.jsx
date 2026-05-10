@@ -1,16 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Save, Lock, ArrowLeft } from 'lucide-react';
+import { Save, Lock, ArrowLeft, AreaChart as ChartIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { translations } from '../translations';
 
-const SERVER_URL = 'https://gold-project-backend.onrender.com';
+const SERVER_URL = 'https://goldprojectbackend-production.up.railway.app';
+
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+  if (typeof dateStr === 'string' && dateStr.includes(' ') && !dateStr.includes('T')) {
+    return new Date(dateStr.replace(' ', 'T') + 'Z');
+  }
+  return new Date(dateStr);
+};
 
 export default function AdminPanel() {
   const [price, setPrice] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
-  const [lang, setLang] = useState('fr');
+  const [lang, setLang] = useState('ar');
   const t = translations[lang].admin;
 
   // Fetch current price to populate form
@@ -20,12 +29,20 @@ export default function AdminPanel() {
         const response = await fetch(`${SERVER_URL}/api/price`);
         if (response.ok) {
           const data = await response.json();
-          if (data && data.price) {
-            setPrice(data.price.toString());
+          
+          if (data) {
+            if (data.price !== undefined) {
+              setPrice(data.price.toString());
+            }
+
+            if (data.date) {
+              setLastUpdated(data.date);
+            }
           }
         }
       } catch (err) {
         console.error('Erreur lors de la récupération du prix actuel:', err);
+        setStatus({ type: 'error', message: t.connError });
       }
     };
     fetchPrice();
@@ -43,7 +60,7 @@ export default function AdminPanel() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          price: parseFloat(price),
+          newPrice: parseFloat(price),
           password: password,
           currency: 'MAD', // Hardcoded to MAD
           unit: 'g'
@@ -59,6 +76,9 @@ export default function AdminPanel() {
         });
         // Clear password for security, keep price
         setPassword('');
+        if (data.data && data.data.date) {
+          setLastUpdated(data.data.date);
+        }
       } else {
         setStatus({
           type: 'error',
@@ -89,12 +109,18 @@ export default function AdminPanel() {
             <option value="fr" style={{color: '#000'}}>FR</option>
             <option value="en" style={{color: '#000'}}>EN</option>
             <option value="ar" style={{color: '#000'}}>AR</option>
+            <option value="es" style={{color: '#000'}}>ES</option>
           </select>
         </div>
 
-        <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          <ArrowLeft size={16} /> {t.backToTv}
-        </Link>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <Link to="/TV" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ArrowLeft size={16} /> {t.backToTv}
+          </Link>
+          <Link to="/chart" style={{ color: 'var(--gold-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ChartIcon size={16} /> {translations[lang].tv.viewChart}
+          </Link>
+        </div>
         <h1>{t.title}</h1>
         
         <form onSubmit={handleSubmit}>
@@ -149,7 +175,24 @@ export default function AdminPanel() {
             {status.message}
           </div>
         )}
+        {/* ✅ AJOUT ICI */}
+        {lastUpdated && (
+          <div style={{ marginTop: '1rem', color: 'gray', fontSize: '0.9rem' }}>
+            🕒 {lang === 'ar' ? 'آخر تحديث' : lang === 'en' ? 'Last update' : lang === 'es' ? 'Última actualización' : 'Dernière mise à jour'} : {parseDate(lastUpdated)?.toLocaleString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'fr-FR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })}
+          </div>
+        )}
       </div>
+
+      <footer className="global-footer">
+        copyright &copy; 2026; <a href="https://sdbo.ma" target="_blank" rel="noreferrer">sdbo.ma</a>
+      </footer>
     </div>
   );
 }

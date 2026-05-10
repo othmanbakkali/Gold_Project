@@ -2,24 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="goldTV" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#fbbf24" />
+    <title>goldTV - Live Gold Price</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div id="debug-info" style="position:fixed; bottom:10px; left:10px; color:rgba(255,255,255,0.2); font-size:10px; z-index:9999;"></div>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('SW registered: ', registration);
-          }).catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
-          });
-        });
-      }
+      window.onload = function() {
+        var root = document.getElementById('root');
+        var debug = document.getElementById('debug-info');
+        if (root && root.innerHTML === "") {
+          debug.innerHTML = "System loading... (v2)";
+          setTimeout(function() {
+            if (root.innerHTML === "") {
+              debug.innerHTML = "Error: App failed to initialize. Browser might be too old.";
+              debug.style.color = "red";
+            }
+          }, 5000);
+        }
+      };
     </script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

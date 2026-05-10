@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "77898368295",
+    "project_id": "goldproject-f4e0e",
+    "storage_bucket": "goldproject-f4e0e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:77898368295:android:7521afb24c5e658a169502",
+        "android_client_info": {
+          "package_name": "com.gold.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAyGkQY76zIwl2jsxDs6IrwTWYhYDJzsI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
