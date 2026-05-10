@@ -19,10 +19,11 @@ function PWAManifestManager() {
       document.head.appendChild(manifestLink);
     }
     
+    // In HashRouter, location.pathname is the part after the #
     if (location.pathname === '/admin') {
-      manifestLink.href = 'manifest-admin.json';
+      manifestLink.href = '/manifest-admin.json';
     } else {
-      manifestLink.href = 'manifest.webmanifest'; 
+      manifestLink.href = '/manifest.webmanifest'; 
     }
   }, [location]);
 

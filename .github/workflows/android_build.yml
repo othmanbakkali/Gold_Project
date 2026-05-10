@@ -49,23 +49,20 @@ jobs:
           cp capacitor.config.json capacitor.config.json.bak
           chmod +x android/gradlew
           npx cap sync android
-          cd android && ./gradlew assembleDebug && cd ..
+          cd android && ./gradlew clean assembleDebug && cd ..
           cp android/app/build/outputs/apk/debug/app-debug.apk ../backend/public/PrixOr.apk
 
       - name: Build Admin APK
         run: |  
           cd client
+          # Utiliser la config Admin (URL pointe vers /admin)
           cp capacitor.admin.config.json capacitor.config.json
-          # Patcher google-services.json avec le nouveau package name Admin
-          sed -i 's/com.gold.app/com.gold.admin/g' android/app/google-services.json
-          # Mise à jour du package ID et du nom dans Gradle
-          sed -i 's/com.gold.app/com.gold.admin/g' android/app/build.gradle
-          sed -i 's/namespace = "com.gold.app"/namespace = "com.gold.admin"/g' android/app/build.gradle
+          # Changer SEULEMENT le nom de l'application (pas le package ID)
           sed -i 's/>PrixOr</>PrixOr Admin</g' android/app/src/main/res/values/strings.xml
-          sed -i 's/>PrixOr$/>PrixOr Admin/g' android/app/src/main/res/values/strings.xml
+          sed -i 's/"app_name">PrixOr</"app_name">PrixOr Admin</g' android/app/src/main/res/values/strings.xml
           chmod +x android/gradlew
           npx cap sync android
-          cd android && ./gradlew assembleDebug && cd ..
+          cd android && ./gradlew clean assembleDebug && cd ..
           cp android/app/build/outputs/apk/debug/app-debug.apk ../backend/public/PrixOr-Admin.apk
 
       - name: Commit and Push APKs to GitHub

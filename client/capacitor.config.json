@@ -1,9 +1,5 @@
 {
   "appId": "com.gold.app",
   "appName": "PrixOr",
-  "webDir": "dist",
-  "server": {
-    "url": "https://goldprojectbackend-production.up.railway.app",
-    "cleartext": true
-  }
+  "webDir": "dist"
 }
