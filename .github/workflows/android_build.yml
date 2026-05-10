@@ -56,12 +56,13 @@ jobs:
         run: |  
           cd client
           cp capacitor.admin.config.json capacitor.config.json
-          # Mise à jour temporaire du package ID et du nom
+          # Patcher google-services.json avec le nouveau package name Admin
+          sed -i 's/com.gold.app/com.gold.admin/g' android/app/google-services.json
+          # Mise à jour du package ID et du nom dans Gradle
           sed -i 's/com.gold.app/com.gold.admin/g' android/app/build.gradle
-          sed -i 's/PrixOr/PrixOr Admin/g' android/app/src/main/res/values/strings.xml
-          # Désactiver Google Services pour éviter l'erreur de package manquant
-          sed -i 's/apply plugin: "com.google.gms.google-services"/\/\/ apply plugin: "com.google.gms.google-services"/g' android/app/build.gradle
-          sed -i "s/apply plugin: 'com.google.gms.google-services'/\/\/ apply plugin: 'com.google.gms.google-services'/g" android/app/build.gradle
+          sed -i 's/namespace = "com.gold.app"/namespace = "com.gold.admin"/g' android/app/build.gradle
+          sed -i 's/>PrixOr</>PrixOr Admin</g' android/app/src/main/res/values/strings.xml
+          sed -i 's/>PrixOr$/>PrixOr Admin/g' android/app/src/main/res/values/strings.xml
           chmod +x android/gradlew
           npx cap sync android
           cd android && ./gradlew assembleDebug && cd ..
