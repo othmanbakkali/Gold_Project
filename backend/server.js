@@ -112,8 +112,21 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
 app.use(cors());
 app.use(express.json());
 
-// Servir les fichiers statiques du dossier client/dist en production
-app.use(express.static(path.join(__dirname, '../client/dist')));
+// Configuration des fichiers statiques (Frontend)
+const clientDistPath = path.resolve(__dirname, '../client/dist');
+console.log('Serving static files from:', clientDistPath);
+
+app.use(express.static(clientDistPath));
+
+// Route de santé pour vérifier que le serveur est vivant
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Server is running', 
+    staticPath: clientDistPath,
+    apkExists: fs.existsSync(path.join(clientDistPath, 'PrixOr.apk'))
+  });
+});
 
 // ── API: Enregistrer un token FCM ─────────────────────────────────────────────
 app.post('/api/fcm/register', (req, res) => {
