@@ -75,3 +75,16 @@ jobs:
           git add backend/public/
           git commit -m "Auto: Mise à jour des APK et du site web (v1.1.0)" || echo "No changes to commit"
           git push origin main
+
+      - name: Deploy site to gh-pages (gold.techniskane.com)
+        run: |
+          cd client
+          # Copier le dist dans un dossier temporaire
+          cp -r dist /tmp/site-deploy
+          cd /tmp/site-deploy
+          git init
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .
+          git commit -m "Auto-deploy: PrixOr site v1.1.0"
+          git push -f https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/othmanbakkali/Gold_Project.git HEAD:gh-pages
