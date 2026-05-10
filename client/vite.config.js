@@ -12,6 +12,9 @@ export default defineConfig({
       additionalLegacyPolyfills: ['regenerator-runtime/runtime', 'whatwg-fetch', 'intersection-observer', 'core-js/stable']
     }),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'icon.png', 'icons.svg', 'manifest-admin.json'],
@@ -35,20 +38,6 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
-          }
-        ]
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,mp3,json}'],
-        maximumFileSizeToCacheInBytes: 5242880, // 5MB
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
-            }
           }
         ]
       },

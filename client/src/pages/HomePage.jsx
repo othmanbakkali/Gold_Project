@@ -5,7 +5,7 @@ import {
   Home, TrendingUp, BarChart2, Archive, Newspaper, Info, Phone,
   Sun, Moon, Volume2, VolumeX,
   AreaChart as ChartIcon, Shield, Zap, Eye, Smartphone, Headphones, ShieldCheck,
-  Menu, X
+  Menu, X, Bell
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -221,7 +221,7 @@ export default function HomePage() {
   const [showToast, setShowToast] = useState(false);
   const [toastData, setToastData] = useState(null);
   const audioRef = useRef(null);
-  
+
   const t = translations[lang] || translations['ar'];
   const hp_t = t.hp;
   const tNav = t.nav;
@@ -306,7 +306,7 @@ export default function HomePage() {
       reconnection: true,
       reconnectionAttempts: Infinity,
     });
-    
+
     // Demander la permission au démarrage sur mobile/web
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
@@ -315,18 +315,31 @@ export default function HomePage() {
     socket.on('priceUpdate', (data) => {
       setPriceData(data);
       setPriceFlash(true);
-      
+
       // Toast Notification visuelle
       setToastData(data);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 5000);
 
-      // Système Notification (Web Push)
+      // Système Notification (Web Push / Service Worker)
       if (Notification.permission === 'granted') {
-        new Notification(lang === 'ar' ? 'تحديث سعر الذهب' : 'Prix de l\'Or à jour', {
+        const title = lang === 'ar' ? '🥇 تحديث سعر الذهب' : '🥇 Prix de l\'Or à jour';
+        const options = {
           body: `${Math.floor(data.price)} ${data.currency} / ${data.unit}`,
-          icon: '/icon.png'
-        });
+          icon: '/icon.png',
+          badge: '/favicon.svg',
+          vibrate: [200, 100, 200],
+          tag: 'price-update',
+          renotify: true
+        };
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, options);
+          });
+        } else {
+          new Notification(title, options);
+        }
       }
 
       setTimeout(() => setPriceFlash(false), 2500);
@@ -383,6 +396,25 @@ export default function HomePage() {
             </button>
           ))}
         </nav>
+        <div className="hp-sidebar-extra">
+          <button className="hp-sidebar-btn" onClick={() => {
+            if ('Notification' in window) {
+              Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                  alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
+                }
+              });
+            }
+          }}>
+            <Bell size={20} />
+            <span>{lang === 'ar' ? 'تفعيل التنبيهات' : 'Activer Notifications'}</span>
+          </button>
+          
+          <button className="hp-sidebar-btn" onClick={toggleAudio}>
+            {isPlaying ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            <span>{isPlaying ? hp_t.musicOn : hp_t.musicOff}</span>
+          </button>
+        </div>
         <div className="hp-social">
           <a href="#" aria-label="Facebook"><IconFacebook /></a>
           <a href="#" aria-label="Instagram"><IconInstagram /></a>
@@ -393,16 +425,7 @@ export default function HomePage() {
             <div>{formattedDate}</div>
             <div className="hp-clock">{formattedClock}</div>
           </div>
-          <div className="hp-download-container">
-            <a href="https://goldprojectbackend-production.up.railway.app/PrixOr.apk" className="hp-download-btn" download>
-              <Smartphone size={16} />
-              <span>Version Client (v1.1.0)</span>
-            </a>
-            <a href="https://goldprojectbackend-production.up.railway.app/PrixOr-Admin.apk" className="hp-download-btn admin" download title="Télécharger l'application d'administration">
-              <ShieldCheck size={16} />
-              <span>Version Admin (v1.1.0)</span>
-            </a>
-          </div>
+
         </div>
       </aside>
 
@@ -451,177 +474,177 @@ export default function HomePage() {
           {activeNav === 'home' && (
             <>
               {/* HERO TITLE */}
-          <div className="hp-hero-title">
-            <div className="hp-hero-left">
-              <div className="hp-title-wrapper" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                <img src={goldBars} alt="" className="hp-title-icon" />
-                <h1>{hp_t.title}</h1>
-                <img src={goldBars} alt="" className="hp-title-icon" />
-              </div>
-              <div className="hp-subtitle" dir={lang === 'ar' ? 'rtl' : 'ltr'}>{hp_t.subtitle}</div>
-            </div>
-          </div>
-
-          {/* MIDDLE ROW */}
-          <div className="hp-middle-row">
-
-            {/* PRICE PANEL */}
-            <div className={`hp-price-panel ${priceFlash ? 'flash' : ''}`}>
-              <div className="hp-price-header">
-                <div className="hp-price-badge">
-                  <span className="hp-badge-dot"></span>
-                  <span>{hp_t.lastUpdate}</span>
-                </div>
-                <div className="hp-price-date">📅 {priceDate}</div>
-              </div>
-              <div className="hp-price-img-row" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                <img src={goldBars} alt="or" className="hp-price-goldbars" />
-
-                <div className="hp-price-label">{hp_t.startingFrom}</div>
-
-                <div className="hp-price-value">
-                  <div className="hp-price-number">
-                    {loading ? '...' : Math.round(basePrice)}
+              <div className="hp-hero-title">
+                <div className="hp-hero-left">
+                  <div className="hp-title-wrapper" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                    <img src={goldBars} alt="" className="hp-title-icon" />
+                    <h1>{hp_t.title}</h1>
+                    <img src={goldBars} alt="" className="hp-title-icon" />
                   </div>
-                  <div className="hp-price-label">{hp_t.currency}</div>
-                </div>
-              </div>
-              <Link to="/TV" className="hp-tv-link">
-                {hp_t.tvLink}
-              </Link>
-            </div>
-
-            {/* ── CHART PANEL — same as /chart ── */}
-            <div className="hp-chart-panel">
-              <div className="hp-chart-header">
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-                  {hp_t.chartTitle}
-                </span>
-                {/* Period buttons */}
-                <div className="hp-chart-tabs">
-                  {PERIODS.map(p => (
-                    <button
-                      key={p.key}
-                      className={`hp-chart-tab ${chartPeriod === p.key ? 'active' : ''}`}
-                      onClick={() => setChartPeriod(p.key)}
-                    >
-                      {tPer[p.tKey]}
-                    </button>
-                  ))}
+                  <div className="hp-subtitle" dir={lang === 'ar' ? 'rtl' : 'ltr'}>{hp_t.subtitle}</div>
                 </div>
               </div>
 
-              {/* Stats row */}
-              {filtered.length > 0 && (
-                <div className="hp-chart-stats">
-                  <span className="hp-stat">
-                    <span className="hp-stat-label">{hp_t.current}</span>
-                    <span className="hp-stat-val" style={{ color: '#10b981' }}>
-                      {filtered[filtered.length - 1].price.toFixed(2)}
-                      <small> {hp_t.currencyShort}</small>
-                    </span>
-                  </span>
-                  <span className="hp-stat">
-                    <span className="hp-stat-label">{hp_t.min}</span>
-                    <span className="hp-stat-val" style={{ color: '#ef4444' }}>
-                      {minPrice.toFixed(2)}<small> {hp_t.currencyShort}</small>
-                    </span>
-                  </span>
-                  <span className="hp-stat">
-                    <span className="hp-stat-label">{hp_t.max}</span>
-                    <span className="hp-stat-val" style={{ color: '#D4AF37' }}>
-                      {maxPrice.toFixed(2)}<small> {hp_t.currencyShort}</small>
-                    </span>
-                  </span>
-                  <span className="hp-stat">
-                    <span className="hp-stat-label">{hp_t.avg}</span>
-                    <span className="hp-stat-val">
-                      {avgPrice.toFixed(2)}<small> {hp_t.currencyShort}</small>
-                    </span>
-                  </span>
-                </div>
-              )}
+              {/* MIDDLE ROW */}
+              <div className="hp-middle-row">
 
-              {/* Chart — identical structure to PriceChart */}
-              <div className="hp-chart-wrapper" style={{ height: 220, position: 'relative', width: '100%', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                {chartLoading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                    <div className="spinner" />
+                {/* PRICE PANEL */}
+                <div className={`hp-price-panel ${priceFlash ? 'flash' : ''}`}>
+                  <div className="hp-price-header">
+                    <div className="hp-price-badge">
+                      <span className="hp-badge-dot"></span>
+                      <span>{hp_t.lastUpdate}</span>
+                    </div>
+                    <div className="hp-price-date">📅 {priceDate}</div>
                   </div>
-                ) : filtered.length === 0 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666', fontSize: '0.85rem' }}>
-                    {hp_t.noData || 'لا توجد بيانات للفترة المحددة'}
+                  <div className="hp-price-img-row" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                    <img src={goldBars} alt="or" className="hp-price-goldbars" />
+
+                    <div className="hp-price-label">{hp_t.startingFrom}</div>
+
+                    <div className="hp-price-value">
+                      <div className="hp-price-number">
+                        {loading ? '...' : Math.round(basePrice)}
+                      </div>
+                      <div className="hp-price-label">{hp_t.currency}</div>
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ position: 'absolute', inset: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                      <AreaChart data={filtered} margin={{ top: 8, right: 8, left: -15, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="hpGoldGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#D4AF37" stopOpacity={0.05} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="0" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                        <XAxis
-                          dataKey="formattedDate"
-                          stroke="#555"
-                          tick={{ fontSize: 9, fill: '#777' }}
-                          interval="preserveStartEnd"
-                          minTickGap={20}
-                        />
-                        <YAxis
-                          stroke="#555"
-                          domain={[minPrice - 5, maxPrice + 5]}
-                          tick={{ fontSize: 9, fill: '#777' }}
-                          tickFormatter={v => `${v}`}
-                          width={42}
-                        />
-                        <Tooltip content={<GoldTooltip lang={lang} tCurrency={hp_t.currencyShort} />} />
-                        <RechartReferenceLine
-                          y={avgPrice}
-                          stroke="rgba(212,175,55,0.25)"
-                          strokeDasharray="5 5"
-                        />
-                        <Area
-                          type="linear"
-                          dataKey="price"
-                          stroke="#D4AF37"
-                          strokeWidth={2.5}
-                          fillOpacity={1}
-                          fill="url(#hpGoldGrad)"
-                          dot={{ r: 2, fill: '#D4AF37', strokeWidth: 0 }}
-                          activeDot={{ r: 5, fill: '#D4AF37', stroke: '#fff', strokeWidth: 2 }}
-                          animationDuration={800}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  <Link to="/TV" className="hp-tv-link">
+                    {hp_t.tvLink}
+                  </Link>
+                </div>
+
+                {/* ── CHART PANEL — same as /chart ── */}
+                <div className="hp-chart-panel">
+                  <div className="hp-chart-header">
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                      {hp_t.chartTitle}
+                    </span>
+                    {/* Period buttons */}
+                    <div className="hp-chart-tabs">
+                      {PERIODS.map(p => (
+                        <button
+                          key={p.key}
+                          className={`hp-chart-tab ${chartPeriod === p.key ? 'active' : ''}`}
+                          onClick={() => setChartPeriod(p.key)}
+                        >
+                          {tPer[p.tKey]}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )}
+
+                  {/* Stats row */}
+                  {filtered.length > 0 && (
+                    <div className="hp-chart-stats">
+                      <span className="hp-stat">
+                        <span className="hp-stat-label">{hp_t.current}</span>
+                        <span className="hp-stat-val" style={{ color: '#10b981' }}>
+                          {filtered[filtered.length - 1].price.toFixed(2)}
+                          <small> {hp_t.currencyShort}</small>
+                        </span>
+                      </span>
+                      <span className="hp-stat">
+                        <span className="hp-stat-label">{hp_t.min}</span>
+                        <span className="hp-stat-val" style={{ color: '#ef4444' }}>
+                          {minPrice.toFixed(2)}<small> {hp_t.currencyShort}</small>
+                        </span>
+                      </span>
+                      <span className="hp-stat">
+                        <span className="hp-stat-label">{hp_t.max}</span>
+                        <span className="hp-stat-val" style={{ color: '#D4AF37' }}>
+                          {maxPrice.toFixed(2)}<small> {hp_t.currencyShort}</small>
+                        </span>
+                      </span>
+                      <span className="hp-stat">
+                        <span className="hp-stat-label">{hp_t.avg}</span>
+                        <span className="hp-stat-val">
+                          {avgPrice.toFixed(2)}<small> {hp_t.currencyShort}</small>
+                        </span>
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Chart — identical structure to PriceChart */}
+                  <div className="hp-chart-wrapper" style={{ height: 220, position: 'relative', width: '100%', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                    {chartLoading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <div className="spinner" />
+                      </div>
+                    ) : filtered.length === 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666', fontSize: '0.85rem' }}>
+                        {hp_t.noData || 'لا توجد بيانات للفترة المحددة'}
+                      </div>
+                    ) : (
+                      <div style={{ position: 'absolute', inset: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                          <AreaChart data={filtered} margin={{ top: 8, right: 8, left: -15, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="hpGoldGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#D4AF37" stopOpacity={0.05} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="0" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                            <XAxis
+                              dataKey="formattedDate"
+                              stroke="#555"
+                              tick={{ fontSize: 9, fill: '#777' }}
+                              interval="preserveStartEnd"
+                              minTickGap={20}
+                            />
+                            <YAxis
+                              stroke="#555"
+                              domain={[minPrice - 5, maxPrice + 5]}
+                              tick={{ fontSize: 9, fill: '#777' }}
+                              tickFormatter={v => `${v}`}
+                              width={42}
+                            />
+                            <Tooltip content={<GoldTooltip lang={lang} tCurrency={hp_t.currencyShort} />} />
+                            <RechartReferenceLine
+                              y={avgPrice}
+                              stroke="rgba(212,175,55,0.25)"
+                              strokeDasharray="5 5"
+                            />
+                            <Area
+                              type="linear"
+                              dataKey="price"
+                              stroke="#D4AF37"
+                              strokeWidth={2.5}
+                              fillOpacity={1}
+                              fill="url(#hpGoldGrad)"
+                              dot={{ r: 2, fill: '#D4AF37', strokeWidth: 0 }}
+                              activeDot={{ r: 5, fill: '#D4AF37', stroke: '#fff', strokeWidth: 2 }}
+                              animationDuration={800}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+
+                  <Link to="/chart" className="hp-full-chart-btn">
+                    <ChartIcon size={14} /> {hp_t.fullChartBtn}
+                  </Link>
+                </div>
+
               </div>
 
-              <Link to="/chart" className="hp-full-chart-btn">
-                <ChartIcon size={14} /> {hp_t.fullChartBtn}
-              </Link>
-            </div>
-
-          </div>
 
 
-
-          {/* FEATURES */}
-          <div className="hp-features-row" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-            {tFeat.map((f, i) => {
-              const Icon = FEATURES_ICONS[i];
-              return (
-                <div key={i} className="hp-feature-card">
-                  <div className="hp-feature-icon"><Icon size={26} /></div>
-                  <div className="hp-feature-title">{f.title}</div>
-                  <div className="hp-feature-desc">{f.desc}</div>
-                </div>
-              );
-            })}
-          </div>
+              {/* FEATURES */}
+              <div className="hp-features-row" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                {tFeat.map((f, i) => {
+                  const Icon = FEATURES_ICONS[i];
+                  return (
+                    <div key={i} className="hp-feature-card">
+                      <div className="hp-feature-icon"><Icon size={26} /></div>
+                      <div className="hp-feature-title">{f.title}</div>
+                      <div className="hp-feature-desc">{f.desc}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </>
           )}
 
@@ -646,19 +669,19 @@ export default function HomePage() {
               <h2 className="hp-page-title">{tNav.about}</h2>
               <div className="hp-page-content" dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ textAlign: lang === 'ar' ? 'right' : 'left', maxWidth: '800px', margin: '0 auto', lineHeight: '1.8', fontSize: '1.05rem', color: 'var(--hp-text)' }}>
                 <p>{ABOUT_CONTENT[lang]?.p1 || ABOUT_CONTENT['ar'].p1}</p>
-                
+
                 <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: 'var(--hp-gold)' }}>
                   {ABOUT_CONTENT[lang]?.listTitle || ABOUT_CONTENT['ar'].listTitle}
                 </h3>
-                
+
                 <ul style={{ paddingInlineStart: '1.5rem', marginBottom: '1.5rem' }}>
                   {(ABOUT_CONTENT[lang]?.list || ABOUT_CONTENT['ar'].list).map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
-                
+
                 <p style={{ marginBottom: '1rem' }}>{ABOUT_CONTENT[lang]?.p2 || ABOUT_CONTENT['ar'].p2}</p>
-                
+
                 <p>{ABOUT_CONTENT[lang]?.p3 || ABOUT_CONTENT['ar'].p3}</p>
               </div>
             </div>
@@ -674,7 +697,7 @@ export default function HomePage() {
           {activeNav === 'chart' && (
             <div className="hp-page-view hp-full-chart-view">
               <h2 className="hp-page-title">{tNav.chart}</h2>
-              <p className="hp-page-desc" style={{marginBottom: '2rem', textAlign: 'center'}}>{hp_t.chartTitle}</p>
+              <p className="hp-page-desc" style={{ marginBottom: '2rem', textAlign: 'center' }}>{hp_t.chartTitle}</p>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <Link to="/chart" className="hp-full-chart-btn" style={{ fontSize: '1.2rem', padding: '1rem 2rem' }}>
                   <ChartIcon size={24} /> {hp_t.fullChartBtn}

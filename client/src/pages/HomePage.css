@@ -163,6 +163,38 @@
   padding: 0.5rem;
 }
 
+.hp-sidebar-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--hp-dark-border);
+}
+
+.hp-sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--hp-dark-border);
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--hp-muted);
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s;
+  text-align: right;
+  width: 100%;
+}
+
+.hp-sidebar-btn:hover {
+  color: var(--hp-gold);
+  border-color: var(--hp-gold);
+  background: rgba(212, 175, 55, 0.08);
+}
+
 .hp-download-btn {
   display: flex;
   align-items: center;
