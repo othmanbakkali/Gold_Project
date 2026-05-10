@@ -420,6 +420,19 @@ export default function HomePage() {
           <a href="#" aria-label="Instagram"><IconInstagram /></a>
           <a href="#" aria-label="Youtube"><IconYoutube /></a>
         </div>
+        <div className="hp-sidebar-admin">
+          <div className="hp-admin-title">{lang === 'ar' ? 'منطقة الإدارة' : 'Zone Administration'}</div>
+          <a href="/PrixOr-Admin.apk" className="hp-admin-download" download>
+            <ShieldCheck size={18} />
+            <span>{lang === 'ar' ? 'تحميل تطبيق المسؤول (Android)' : 'App Admin (Android)'}</span>
+          </a>
+          <div className="hp-admin-info">
+            {lang === 'ar' 
+              ? 'بالنسبة لـ iPhone: اذهب إلى صفحة الإدارة واستخدم "إضافة إلى الشاشة الرئيسية"' 
+              : 'Pour iPhone : Allez sur la page Admin et utilisez "Sur l\'écran d\'accueil"'}
+          </div>
+        </div>
+
         <div className="hp-sidebar-footer">
           <div className="hp-sidebar-date">
             <div>{formattedDate}</div>

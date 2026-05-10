@@ -171,6 +171,52 @@
   border-top: 1px solid var(--hp-dark-border);
 }
 
+.hp-sidebar-admin {
+  padding: 1rem 0.5rem;
+  border-top: 1px solid var(--hp-dark-border);
+  background: rgba(212, 175, 55, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.hp-admin-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--hp-gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hp-admin-download {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--hp-dark-card);
+  border: 1px solid var(--hp-gold);
+  color: var(--hp-gold);
+  padding: 0.7rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.2s;
+  justify-content: center;
+}
+
+.hp-admin-download:hover {
+  background: var(--hp-gold);
+  color: #000;
+  box-shadow: 0 4px 15px var(--hp-gold-glow);
+}
+
+.hp-admin-info {
+  font-size: 0.65rem;
+  color: var(--hp-muted);
+  line-height: 1.4;
+  font-style: italic;
+}
+
 .hp-sidebar-btn {
   display: flex;
   align-items: center;
