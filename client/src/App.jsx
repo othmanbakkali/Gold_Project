@@ -29,19 +29,6 @@ function PWAManifestManager() {
   return null;
 }
 
-function NativeRedirector() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  useEffect(() => {
-    if (Capacitor.isNativePlatform() && location.pathname === '/') {
-      navigate('/admin', { replace: true });
-    }
-  }, [location, navigate]);
-  
-  return null;
-}
-
 function App() {
   useEffect(() => {
     notificationService.init();
@@ -49,7 +36,6 @@ function App() {
 
   return (
     <HashRouter>
-      <NativeRedirector />
       <PWAManifestManager />
       <Routes>
         <Route path="/"      element={<HomePage />} />

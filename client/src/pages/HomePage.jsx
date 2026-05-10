@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import {
   Home, TrendingUp, BarChart2, Archive, Newspaper, Info, Phone,
   Sun, Moon, Volume2, VolumeX,
-  AreaChart as ChartIcon, Shield, Zap, Eye, Smartphone, Headphones,
+  AreaChart as ChartIcon, Shield, Zap, Eye, Smartphone, Headphones, ShieldCheck,
   Menu, X
 } from 'lucide-react';
 import {
@@ -371,10 +371,16 @@ export default function HomePage() {
             <div>{formattedDate}</div>
             <div className="hp-clock">{formattedClock}</div>
           </div>
-          <a href="https://goldprojectbackend-production.up.railway.app/PrixOr.apk" className="hp-download-btn" download>
-            <Smartphone size={16} />
-            <span>{hp_t.downloadApp} (v1.1.0)</span>
-          </a>
+          <div className="hp-download-container">
+            <a href="https://goldprojectbackend-production.up.railway.app/PrixOr.apk" className="hp-download-btn" download>
+              <Smartphone size={16} />
+              <span>Version Client (v1.1.0)</span>
+            </a>
+            <a href="https://goldprojectbackend-production.up.railway.app/PrixOr-Admin.apk" className="hp-download-btn admin" download title="Télécharger l'application d'administration">
+              <ShieldCheck size={16} />
+              <span>Version Admin (v1.1.0)</span>
+            </a>
+          </div>
         </div>
       </aside>
 

@@ -1,4 +1,4 @@
-name: Build Android APKs
+name: Build and Deploy APKs
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Autorise le robot à renvoyer les fichiers sur GitHub
 
     steps:
       - name: Checkout Source
@@ -28,6 +30,9 @@ jobs:
         run: |
           cd client
           npm run build
+          # Copier le site web vers le backend pour Railway
+          mkdir -p ../backend/public/dist
+          cp -r dist/* ../backend/public/dist/
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -45,7 +50,7 @@ jobs:
           chmod +x android/gradlew
           npx cap sync android
           cd android && ./gradlew assembleDebug && cd ..
-          mv android/app/build/outputs/apk/debug/app-debug.apk ../PrixOr-Client.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk ../backend/public/PrixOr.apk
 
       - name: Build Admin APK
         run: |  
@@ -57,50 +62,12 @@ jobs:
           chmod +x android/gradlew
           npx cap sync android
           cd android && ./gradlew assembleDebug && cd ..
-          mv android/app/build/outputs/apk/debug/app-debug.apk ../PrixOr-Admin.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk ../backend/public/PrixOr-Admin.apk
 
-      - name: Upload APKs
-        uses: actions/upload-artifact@v4
-        with:
-          name: PrixOr-Dual-APKs
-          path: |
-            PrixOr-Client.apk
-            PrixOr-Admin.apk
-
-  build-ios:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
-
-      - name: Install Dependencies
+      - name: Commit and Push APKs to GitHub
         run: |
-          cd client
-          npm install --legacy-peer-deps
-
-      - name: Build Web App
-        run: |
-          cd client
-          npm run build
-
-      - name: Setup CocoaPods
-        run: |
-          cd client/ios/App
-          pod install
-
-      - name: Build iOS Client
-        run: |
-          cd client
-          cp capacitor.config.json.bak capacitor.config.json
-          npx cap sync ios
-          # Note: Le build IPA complet demande un certificat de signature.
-          # On se contente ici de vérifier que le projet compile.
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -destination 'generic/platform=iOS' -allowProvisioningUpdates build
-
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add backend/public/
+          git commit -m "Auto: Mise à jour des APK et du site web (v1.1.0)" || echo "No changes to commit"
+          git push origin main
