@@ -41,11 +41,14 @@ body {
 }
 
 .global-footer {
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
   text-align: center;
   padding: 1rem;
   font-size: 0.8rem;
   color: var(--text-muted, #999);
-  margin-top: auto;
+  z-index: 10;
 }
 .global-footer a {
   color: var(--gold-primary, #D4AF37);
@@ -303,20 +306,22 @@ body {
 .admin-container {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  padding: 2rem;
+  min-height: 100vh;
+  padding: 1rem;
 }
 
 .admin-card {
   background: var(--panel-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1.5rem;
-  padding: 3rem;
-  width: 100%;
-  max-width: 450px;
+  padding: 2rem;
+  width: 95%;
+  max-width: 600px; /* Élargi de 450px à 600px */
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  margin-bottom: 3rem;
 }
 
 .admin-card h1 {
