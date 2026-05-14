@@ -11,6 +11,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine as RechartReferenceLine
 } from 'recharts';
+import icon from '../assets/Logo_min.png';
 import logo from '../assets/logo.png';
 import goldBars from '../assets/gold-bars.png';
 import goldRings from '../assets/gold-rings-hero.png';
@@ -437,7 +438,7 @@ export default function HomePage() {
       {/* ─── SIDEBAR ──────────────────────────────────────────── */}
       <aside className={`hp-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="hp-sidebar-logo">
-          <img src={logo} alt="FMB Logo" />
+          <img src={icon} alt="FMB Logo" />
           <span className="hp-sidebar-brand">الفدرالية المغربية للصياغين</span>
         </div>
         <nav className="hp-nav">
