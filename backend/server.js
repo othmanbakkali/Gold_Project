@@ -63,6 +63,23 @@ const io = socketIo(server, {
   }
 });
 
+// ─── Active Connections Tracking ─────────────────────────────────────────────
+const activeConnections = new Map();
+
+io.on('connection', (socket) => {
+  const ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  activeConnections.set(socket.id, {
+    id: socket.id,
+    ip: ip,
+    connectedAt: new Date().toISOString()
+  });
+
+  socket.on('disconnect', () => {
+    activeConnections.delete(socket.id);
+  });
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 const PORT = process.env.PORT || 3001;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'goldadmin';
 
@@ -79,11 +96,17 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
       price REAL NOT NULL,
       currency TEXT DEFAULT 'MAD',
       unit TEXT DEFAULT 'g',
-      date DATETIME DEFAULT CURRENT_TIMESTAMP
+      date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      ip_address TEXT,
+      username TEXT
     )`, (err) => {
       if (err) {
         console.error('Erreur lors de la création de la table:', err.message);
       } else {
+        // Ajouter les colonnes si la table existait déjà sans elles (migration simple)
+        db.run(`ALTER TABLE gold_prices ADD COLUMN ip_address TEXT`, () => {});
+        db.run(`ALTER TABLE gold_prices ADD COLUMN username TEXT`, () => {});
+
         // Initialiser avec un prix par défaut si la table est vide
         db.get('SELECT COUNT(*) as count FROM gold_prices', (err, row) => {
           if (row.count === 0) {
@@ -107,6 +130,26 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
         console.error('Erreur création table fcm_tokens:', err.message);
       } else {
         console.log('Table fcm_tokens prête.');
+      }
+    });
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ── Création de la table users ───────────────────────────────────────────
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1
+    )`, (err) => {
+      if (err) {
+        console.error('Erreur création table users:', err.message);
+      } else {
+        db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
+          if (row && row.count === 0) {
+            db.run(`INSERT INTO users (username, password, is_active) VALUES (?, ?, ?)`, ['admin', ADMIN_PASSWORD, 1]);
+            console.log('Utilisateur admin par défaut créé.');
+          }
+        });
       }
     });
     // ─────────────────────────────────────────────────────────────────────────
@@ -326,7 +369,7 @@ app.get('/api/price/history', (req, res) => {
   dateLimit.setDate(dateLimit.getDate() - days);
   const isoLimit = dateLimit.toISOString();
 
-  db.all('SELECT price, date FROM gold_prices WHERE date >= ? ORDER BY date ASC', [isoLimit], (err, rows) => {
+  db.all('SELECT price, date, ip_address, username FROM gold_prices WHERE date >= ? ORDER BY date ASC', [isoLimit], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -334,42 +377,170 @@ app.get('/api/price/history', (req, res) => {
   });
 });
 
+// ── API: Dashboard Stats (Admin) ──────────────────────────────────────────────
+app.get('/api/dashboard/stats', (req, res) => {
+  const { username, password } = req.query;
+  
+  db.get('SELECT * FROM users WHERE username = ? AND password = ? AND is_active = 1', [username, password], (err, admin) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!admin) return res.status(401).json({ error: 'Non autorisé' });
+
+    // 1. Get FCM Tokens by platform
+    db.all('SELECT platform, COUNT(*) as count FROM fcm_tokens GROUP BY platform', (err, platformRows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      let androidCount = 0;
+      let iosCount = 0;
+      
+      platformRows.forEach(row => {
+        if (row.platform.toLowerCase() === 'ios') iosCount = row.count;
+        else androidCount += row.count; // Default to android
+      });
+
+      // 2. Get Recent Price Changes
+      db.all('SELECT id, price, date, ip_address, username FROM gold_prices ORDER BY id DESC LIMIT 50', (err, priceRows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        res.json({
+          activeConnections: Array.from(activeConnections.values()),
+          installations: {
+            android: androidCount,
+            ios: iosCount,
+            total: androidCount + iosCount
+          },
+          priceHistory: priceRows
+        });
+      });
+    });
+  });
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Mettre à jour le prix (Nécessite authentification)
 app.post('/api/price', (req, res) => {
-  const { password, price, newPrice, currency = 'MAD', unit = 'g' } = req.body;
+  const { username, password, price, newPrice, currency = 'MAD', unit = 'g' } = req.body;
 
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Mot de passe incorrect' });
+  if (!username || !password) {
+    return res.status(401).json({ error: "Nom d'utilisateur et mot de passe requis" });
   }
 
-  const finalPrice = price || newPrice;
-  if (!finalPrice || isNaN(finalPrice)) {
-    return res.status(400).json({ error: 'Prix invalide' });
-  }
-
-  const currentDate = new Date().toISOString();
-  db.run(`INSERT INTO gold_prices (price, currency, unit, date) VALUES (?, ?, ?, ?)`, [finalPrice, currency, unit, currentDate], function (err) {
+  db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, user) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    if (!user) {
+      return res.status(401).json({ error: 'Identifiants incorrects' });
+    }
+    if (user.is_active !== 1) {
+      return res.status(403).json({ error: 'Ce compte utilisateur est désactivé' });
+    }
 
-    const newRecord = {
-      id: this.lastID,
-      price: parseFloat(finalPrice),
-      currency,
-      unit,
-      date: currentDate
-    };
+    const finalPrice = price || newPrice;
+    if (!finalPrice || isNaN(finalPrice)) {
+      return res.status(400).json({ error: 'Prix invalide' });
+    }
 
-    // 1. Émettre le nouveau prix à tous les clients connectés via WebSockets
-    io.emit('priceUpdate', newRecord);
+    const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    const currentDate = new Date().toISOString();
+    
+    db.run(`INSERT INTO gold_prices (price, currency, unit, date, ip_address, username) VALUES (?, ?, ?, ?, ?, ?)`, 
+      [finalPrice, currency, unit, currentDate, ipAddress, user.username], 
+      function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
 
-    // 2. Envoyer notification push FCM à tous les appareils Android enregistrés
-    sendPriceNotification(newRecord);
+      const newRecord = {
+        id: this.lastID,
+        price: parseFloat(finalPrice),
+        currency,
+        unit,
+        date: currentDate,
+        ip_address: ipAddress,
+        username: user.username
+      };
 
-    res.json({ success: true, data: newRecord });
+      // 1. Émettre le nouveau prix à tous les clients connectés via WebSockets
+      io.emit('priceUpdate', newRecord);
+
+      // 2. Envoyer notification push FCM à tous les appareils Android enregistrés
+      sendPriceNotification(newRecord);
+
+      res.json({ success: true, data: newRecord });
+    });
   });
 });
+
+// ── API: Gestion des utilisateurs ─────────────────────────────────────────────
+app.get('/api/users', (req, res) => {
+  const { username, password } = req.query;
+  db.get('SELECT * FROM users WHERE username = ? AND password = ? AND is_active = 1', [username, password], (err, admin) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!admin) return res.status(401).json({ error: 'Non autorisé' });
+
+    db.all('SELECT id, username, is_active FROM users ORDER BY id ASC', (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  });
+});
+
+app.post('/api/users', (req, res) => {
+  const { adminUser, adminPass, newUsername, newPassword, isActive } = req.body;
+  db.get('SELECT * FROM users WHERE username = ? AND password = ? AND is_active = 1', [adminUser, adminPass], (err, admin) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!admin) return res.status(401).json({ error: 'Non autorisé' });
+
+    if (!newUsername || !newPassword) return res.status(400).json({ error: 'Données manquantes' });
+
+    db.run('INSERT INTO users (username, password, is_active) VALUES (?, ?, ?)', [newUsername, newPassword, isActive ? 1 : 0], function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(400).json({ error: "Ce nom d'utilisateur existe déjà" });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ success: true, id: this.lastID });
+    });
+  });
+});
+
+app.put('/api/users/:id', (req, res) => {
+  const { adminUser, adminPass, username, password, isActive } = req.body;
+  const targetId = req.params.id;
+
+  db.get('SELECT * FROM users WHERE username = ? AND password = ? AND is_active = 1', [adminUser, adminPass], (err, admin) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!admin) return res.status(401).json({ error: 'Non autorisé' });
+
+    // Construire la requête de mise à jour dynamiquement
+    let query = 'UPDATE users SET is_active = ?';
+    let params = [isActive ? 1 : 0];
+
+    if (username) {
+      query += ', username = ?';
+      params.push(username);
+    }
+    if (password) {
+      query += ', password = ?';
+      params.push(password);
+    }
+
+    query += ' WHERE id = ?';
+    params.push(targetId);
+
+    db.run(query, params, function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(400).json({ error: "Ce nom d'utilisateur est déjà utilisé" });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ success: true });
+    });
+  });
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Route Fallback pour les applications React (SPA)
 app.use((req, res) => {

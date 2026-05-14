@@ -5,6 +5,7 @@ export const translations = {
       "prices": "Prix de l'or",
       "chart": "Graphique",
       "about": "À propos",
+      "initiative": "L'Initiative",
       "contact": "Contact"
     },
     "periods": {
@@ -89,9 +90,11 @@ export const translations = {
     "admin": {
       "title": "Administration",
       "backToTv": "Retour à la TV",
+      "usernameLabel": "Nom d'utilisateur",
+      "usernamePlaceholder": "Entrez votre identifiant",
       "priceLabel": "Nouveau Prix de l'Or (MAD/g)",
       "pricePlaceholder": "Ex: 750.50",
-      "passwordLabel": "Mot de Passe Admin",
+      "passwordLabel": "Mot de Passe",
       "passwordPlaceholder": "Entrez le mot de passe",
       "submitBtn": "Publier le prix",
       "submitting": "Mise à jour...",
@@ -105,6 +108,7 @@ export const translations = {
       "prices": "Gold Prices",
       "chart": "Chart",
       "about": "About us",
+      "initiative": "The Initiative",
       "contact": "Contact"
     },
     "periods": {
@@ -187,9 +191,11 @@ export const translations = {
     "admin": {
       "title": "Administration",
       "backToTv": "Back to TV",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "Enter your username",
       "priceLabel": "New Gold Price (MAD/g)",
       "pricePlaceholder": "Ex: 750.50",
-      "passwordLabel": "Admin Password",
+      "passwordLabel": "Password",
       "passwordPlaceholder": "Enter password",
       "submitBtn": "Publish Price",
       "submitting": "Updating...",
@@ -203,6 +209,7 @@ export const translations = {
       "prices": "أسعار الذهب",
       "chart": "الرسم البياني",
       "about": "عن الفدرالية",
+      "initiative": "مبادرة الشفافية",
       "contact": "اتصل بنا"
     },
     "periods": {
@@ -285,9 +292,11 @@ export const translations = {
     "admin": {
       "title": "لوحة التحكم",
       "backToTv": "العودة إلى الشاشة",
+      "usernameLabel": "اسم المستخدم",
+      "usernamePlaceholder": "أدخل اسم المستخدم",
       "priceLabel": "سعر الذهب الجديد (درهم/غرام)",
       "pricePlaceholder": "مثال: 750.50",
-      "passwordLabel": "كلمة مرور المسؤول",
+      "passwordLabel": "كلمة المرور",
       "passwordPlaceholder": "أدخل كلمة المرور",
       "submitBtn": "نشر السعر",
       "submitting": "جاري التحديث...",
@@ -301,6 +310,7 @@ export const translations = {
       "prices": "Precios del Oro",
       "chart": "Gráfico",
       "about": "Nosotros",
+      "initiative": "La Iniciativa",
       "contact": "Contacto"
     },
     "periods": {
@@ -383,9 +393,11 @@ export const translations = {
     "admin": {
       "title": "Administración",
       "backToTv": "Volver a la TV",
+      "usernameLabel": "Nombre de usuario",
+      "usernamePlaceholder": "Ingrese su usuario",
       "priceLabel": "Nuevo Precio del Oro (MAD/g)",
       "pricePlaceholder": "Ej: 750.50",
-      "passwordLabel": "Contraseña de Admin",
+      "passwordLabel": "Contraseña",
       "passwordPlaceholder": "Ingrese contraseña",
       "submitBtn": "Publicar Precio",
       "submitting": "Actualizando...",

@@ -110,6 +110,7 @@ const NAV_ITEMS = [
   { icon: Home, tKey: 'home', id: 'home' },
   { icon: TrendingUp, tKey: 'prices', id: 'prices' },
   { icon: BarChart2, tKey: 'chart', id: 'chart' },
+  { icon: Shield, tKey: 'initiative', id: 'initiative' },
   { icon: Info, tKey: 'about', id: 'about' },
   { icon: Phone, tKey: 'contact', id: 'contact' },
 ];
@@ -180,6 +181,33 @@ const ABOUT_CONTENT = {
   }
 };
 
+const INITIATIVE_CONTENT = {
+  ar: {
+    title: "مبادرة تعزيز الشفافية",
+    p1: "في ظلّ التزايد اليومي في الطلب على معرفة سعر الذهب الخام عيار 18، جاءت هذه المبادرة بهدف تعزيز الشفافية داخل قطاع الحلي والمجوهرات، وتمكين المهنيين والمستهلكين من الاطلاع على السعر الحقيقي للذهب الخام، مع ربطه بالسعر المحلي المعتمد بالمغرب انطلاقًا من سوق الدار البيضاء باعتباره مرجعًا وطنيًا.",
+    p2: "وتهدف هذه الفكرة إلى توفير مؤشر واضح وموحّد يساهم في تتبع تطور الأسعار، وتنظيم المعاملات داخل القطاع، وتعزيز الثقة بين مختلف المتدخلين.",
+    p3: "وقد جاءت هذه المبادرة باقتراح و إعداد من السيد حكيم بنشعيب، عضو جمعية صوت الصاغة لطنجة الكبرى"
+  },
+  fr: {
+    title: "Initiative de Transparence",
+    p1: "Face à la demande quotidienne croissante pour connaître le prix de l'or brut 18 carats, cette initiative est née pour renforcer la transparence dans le secteur de la bijouterie, permettant aux professionnels et aux consommateurs de connaître le prix réel de l'or brut, lié au prix local agréé au Maroc à partir du marché de Casablanca comme référence nationale.",
+    p2: "Cette idée vise à fournir un indicateur clair et unifié contribuant au suivi de l'évolution des prix, à l'organisation des transactions au sein du secteur et au renforcement de la confiance entre les différents intervenants.",
+    p3: "Cette initiative a été proposée et préparée par M. Hakim Bencheid, membre de l'association Sawt As-Sagha de Tanger-Tétouan-Al Hoceïma."
+  },
+  en: {
+    title: "Transparency Initiative",
+    p1: "In light of the increasing daily demand for 18-karat raw gold prices, this initiative was launched to enhance transparency in the jewelry sector, enabling professionals and consumers to access the real price of raw gold, linked to the local price in Morocco based on the Casablanca market as a national reference.",
+    p2: "The goal is to provide a clear and unified indicator that tracks price evolution, organizes transactions within the sector, and strengthens trust among stakeholders.",
+    p3: "This initiative was proposed and prepared by Mr. Hakim Bencheid, member of the Sawt As-Sagha Association of Greater Tangier."
+  },
+  es: {
+    title: "Iniciativa de Transparencia",
+    p1: "Ante la creciente demanda diaria de precios del oro bruto de 18 quilates, esta iniciativa surgió para fortalecer la transparencia en el sector de la joyería, permitiendo a profesionales y consumidores conocer el precio real del oro bruto, vinculado al precio local en Marruecos basado en el mercado de Casablanca como referencia nacional.",
+    p2: "El objetivo es proporcionar un indicador claro y unificado que siga la evolución de los precios, organice las transacciones en el sector y fortalezca la confianza entre los interesados.",
+    p3: "Esta iniciativa fue propuesta y preparada por el Sr. Hakim Bencheid, miembro de la Asociación Sawt As-Sagha de Tánger."
+  }
+};
+
 // ── Custom Tooltip (same as PriceChart) ───────────────────────────────────────
 function GoldTooltip({ active, payload, label, lang, tCurrency }) {
   if (!active || !payload?.length) return null;
@@ -220,6 +248,8 @@ export default function HomePage() {
   const [lang, setLang] = useState(localStorage.getItem('hp_lang') || 'ar');
   const [showToast, setShowToast] = useState(false);
   const [toastData, setToastData] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   const audioRef = useRef(null);
 
   const t = translations[lang] || translations['ar'];
@@ -240,6 +270,22 @@ export default function HomePage() {
   // ── Clock ──
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
+
+    // Gérer l'installation PWA
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    });
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+
     return () => clearInterval(t);
   }, []);
 
@@ -355,6 +401,15 @@ export default function HomePage() {
     else { audioRef.current.play(); setIsPlaying(true); }
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   // ── Compute chart data (same as PriceChart) ──
   const filtered = filterByPeriod(history, chartPeriod).map(e => ({
     ...e,
@@ -445,16 +500,27 @@ export default function HomePage() {
       {/* ─── MAIN ─────────────────────────────────────────────── */}
       <main className="hp-main">
 
+        {/* PWA INSTALL BANNER */}
+        {deferredPrompt && !isInstalled && (
+          <div className="hp-install-banner">
+            <div className="hp-install-info">
+              <Smartphone size={20} />
+              <span>{lang === 'ar' ? 'قم بتثبيت التطبيق للحصول على تنبيهات فورية' : 'Installez l\'app pour des alertes instantanées'}</span>
+            </div>
+            <button className="hp-install-btn" onClick={handleInstallClick}>
+              {lang === 'ar' ? 'تثبيت الآن' : 'Installer'}
+            </button>
+            <button className="hp-install-close" onClick={() => setDeferredPrompt(null)}><X size={16} /></button>
+          </div>
+        )}
+
         {/* TOP BAR */}
         <header className="hp-topbar">
           <div className="hp-topbar-left">
             <button className="hp-menu-btn" onClick={() => setSidebarOpen(o => !o)}>
               {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
-            <a href="https://goldprojectbackend-production.up.railway.app/PrixOr-Admin.apk" className="hp-ctrl-btn hp-admin-btn" download title={lang === 'ar' ? 'تحميل تطبيق المسؤول' : 'Télécharger App Admin'}>
-              <ShieldCheck size={16} />
-              <span className="hp-admin-text">{lang === 'ar' ? 'تطبيق المسؤول (Admin)' : 'App Admin'}</span>
-            </a>
+
             <button className="hp-ctrl-btn" onClick={cycleLang} title="تغيير اللغة">
               <span>🌐</span><span>{lang.toUpperCase()}</span>
             </button>
@@ -704,10 +770,48 @@ export default function HomePage() {
             </div>
           )}
 
+          {activeNav === 'initiative' && (
+            <div className="hp-page-view hp-text-view">
+              <h2 className="hp-page-title">{tNav.initiative}</h2>
+              <div className="hp-page-content" dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ textAlign: lang === 'ar' ? 'right' : 'left', maxWidth: '800px', margin: '0 auto', lineHeight: '2', fontSize: '1.2rem', color: 'var(--hp-text)' }}>
+                <div style={{ background: 'var(--hp-gold-card)', padding: '2rem', borderRadius: '20px', border: '1px solid var(--hp-gold)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                  <p style={{ marginBottom: '1.5rem', fontWeight: 500 }}>{INITIATIVE_CONTENT[lang]?.p1 || INITIATIVE_CONTENT['ar'].p1}</p>
+                  <p style={{ marginBottom: '1.5rem' }}>{INITIATIVE_CONTENT[lang]?.p2 || INITIATIVE_CONTENT['ar'].p2}</p>
+                  <hr style={{ margin: '2rem 0', opacity: 0.2, borderColor: 'var(--hp-gold)' }} />
+                  <p style={{ fontWeight: 700, color: 'var(--hp-gold)', fontSize: '1.1rem' }}>{INITIATIVE_CONTENT[lang]?.p3 || INITIATIVE_CONTENT['ar'].p3}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeNav === 'contact' && (
             <div className="hp-page-view hp-text-view">
               <h2 className="hp-page-title">{tNav.contact}</h2>
-              <p className="hp-page-desc">{hp_t.contact || 'لأي استفسار، يرجى التواصل معنا: contact@fmb.ma | +212 500 000 000'}</p>
+              <div className="hp-page-content" dir="rtl" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                <div style={{ display: 'grid', gap: '1.5rem' }}>
+                  <div style={{ background: 'var(--hp-gold-card)', padding: '1.5rem', borderRadius: '15px', border: '1px solid var(--hp-gold)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.3rem' }}>السيد حكيم بنشعيب</div>
+                      <div style={{ color: 'var(--hp-text-soft)', fontSize: '0.9rem' }}>عضو جمعية صوت الصاغة</div>
+                    </div>
+                    <a href="tel:+212670821356" style={{ background: 'var(--hp-gold)', color: '#000', padding: '0.6rem 1.2rem', borderRadius: '10px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Phone size={18} />
+                      <span dir="ltr">06 70 82 13 56</span>
+                    </a>
+                  </div>
+
+                  <div style={{ background: 'var(--hp-gold-card)', padding: '1.5rem', borderRadius: '15px', border: '1px solid var(--hp-gold)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.3rem' }}>الحاج ادريس  الهزاز</div>
+                      <div style={{ color: 'var(--hp-text-soft)', fontSize: '0.9rem' }}>للتواصل والاستفسار</div>
+                    </div>
+                    <a href="tel:+212664164424" style={{ background: 'var(--hp-gold)', color: '#000', padding: '0.6rem 1.2rem', borderRadius: '10px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Phone size={18} />
+                      <span dir="ltr">06 64 16 44 24</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

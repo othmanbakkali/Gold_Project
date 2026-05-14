@@ -2,7 +2,6 @@ import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-route
 import { useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import TVDisplay from './pages/TVDisplay';
-import AdminPanel from './pages/AdminPanel';
 import PriceChart from './pages/PriceChart';
 import { Capacitor } from '@capacitor/core';
 import { notificationService } from './services/notificationService';
@@ -58,7 +57,6 @@ function App() {
       <Routes>
         <Route path="/"      element={<HomePage />} />
         <Route path="/TV"    element={<TVDisplay />} />
-        <Route path="/admin" element={<AdminPanel />} />
         <Route path="/chart" element={<PriceChart />} />
       </Routes>
     </HashRouter>
