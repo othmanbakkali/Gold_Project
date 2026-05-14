@@ -249,6 +249,7 @@ export default function HomePage() {
   const [lang, setLang] = useState(localStorage.getItem('hp_lang') || 'ar');
   const [showToast, setShowToast] = useState(false);
   const [toastData, setToastData] = useState(null);
+  const [footerMessage, setFooterMessage] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const audioRef = useRef(null);
@@ -325,6 +326,15 @@ export default function HomePage() {
       }
     };
     fetchHistory();
+
+    const fetchFooter = async () => {
+      try {
+        const response = await fetch(`${SOCKET_SERVER_URL}/api/settings/footer`);
+        const data = await response.json();
+        if (data && data.message) setFooterMessage(data.message);
+      } catch (err) { console.error('Fetch footer error:', err); }
+    };
+    fetchFooter();
   }, []);
 
   // ── Fetch current price + add to history ──
@@ -393,6 +403,13 @@ export default function HomePage() {
       const entry = { price: parseFloat(data.price), date: normalizeDate(data.date) };
       setHistory(prev => { const u = addEntryIfNew(prev, entry); saveLocalHistory(u); return u; });
     });
+
+    socket.on('settingsUpdate', (data) => {
+      if (data.key === 'footer_message') {
+        setFooterMessage(data.value);
+      }
+    });
+
     return () => socket.disconnect();
   }, []);
 
@@ -546,7 +563,7 @@ export default function HomePage() {
               <span className="hp-brand-fr">{hp_t.brandFr}</span>
             </div>
             <div className="hp-topbar-logo">
-              <img src={logo} alt="FMB" />
+              <img src={icon} alt="FMB" />
               <div className="hp-fmb-badge">FMB</div>
             </div>
           </div>
@@ -803,7 +820,7 @@ export default function HomePage() {
 
                   <div style={{ background: 'var(--hp-gold-card)', padding: '1.5rem', borderRadius: '15px', border: '1px solid var(--hp-gold)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.3rem' }}>الحاج ادريس  الهزاز</div>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.3rem' }}> ادريس  الهزاز رئيس الفيدرالية</div>
                       <div style={{ color: 'var(--hp-text-soft)', fontSize: '0.9rem' }}>للتواصل والاستفسار</div>
                     </div>
                     <a href="tel:+212664164424" style={{ background: 'var(--hp-gold)', color: '#000', padding: '0.6rem 1.2rem', borderRadius: '10px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -825,6 +842,22 @@ export default function HomePage() {
                   <ChartIcon size={24} /> {hp_t.fullChartBtn}
                 </Link>
               </div>
+            </div>
+          )}
+
+          {footerMessage && (
+            <div className="hp-custom-footer-msg" style={{ 
+              padding: '1.5rem', 
+              textAlign: 'center', 
+              color: 'rgba(255, 255, 255, 0.5)', 
+              fontSize: '1rem', 
+              borderTop: '1px solid rgba(255,215,0,0.1)',
+              maxWidth: '800px',
+              margin: '0 auto',
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {footerMessage}
             </div>
           )}
 
