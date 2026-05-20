@@ -68,13 +68,28 @@ const activeConnections = new Map();
 
 io.on('connection', (socket) => {
   const ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  const platform = socket.handshake.query.platform || 'android';
+  
+  console.log(`🔌 Client connecté: ID=${socket.id}, IP=${ip}, Platform=${platform}`);
+
   activeConnections.set(socket.id, {
     id: socket.id,
     ip: ip,
+    platform: platform,
     connectedAt: new Date().toISOString()
   });
 
-  socket.on('disconnect', () => {
+  // Enregistrer dans l'historique
+  db.run('INSERT INTO connection_history (ip_address) VALUES (?)', [ip], (err) => {
+    if (err) {
+      console.error(`❌ Erreur enregistrement historique connexion pour ${ip}:`, err.message);
+    } else {
+      console.log(`💾 Connexion de ${ip} enregistrée dans l'historique.`);
+    }
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log(`🔌 Client déconnecté: ID=${socket.id}, Raison=${reason}`);
     activeConnections.delete(socket.id);
   });
 });
@@ -84,11 +99,20 @@ const PORT = process.env.PORT || 3001;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'goldadmin';
 
 // Configuration de la base de données SQLite
-const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'database.sqlite');
+
+// S'assurer que le dossier parent existe (utile pour les volumes Railway)
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Erreur lors de la connexion à la base de données:', err.message);
   } else {
-    console.log('Connecté à la base de données SQLite.');
+    console.log(`Base de données connectée : ${dbPath}`);
+    console.log('Connecté à la base de données SQLite (Persistance Activée).');
 
     // Création de la table gold_prices si elle n'existe pas
     db.run(`CREATE TABLE IF NOT EXISTS gold_prices (
@@ -174,6 +198,13 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) =
         });
       }
     });
+
+    // ── Création de la table connection_history ──────────────────────────────
+    db.run(`CREATE TABLE IF NOT EXISTS connection_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ip_address TEXT,
+      connected_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
     // ─────────────────────────────────────────────────────────────────────────
   }
 });
@@ -257,8 +288,8 @@ app.post('/api/fcm/register', (req, res) => {
   db.run(
     `INSERT INTO fcm_tokens (token, device_id, platform, lang, created_at, last_seen)
      VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(token) DO UPDATE SET last_seen = ?, device_id = ?, lang = ?`,
-    [token, deviceId || null, platform, lang, now, now, now, deviceId || null, lang],
+     ON CONFLICT(token) DO UPDATE SET last_seen = ?, device_id = ?, lang = ?, platform = ?`,
+    [token, deviceId || null, platform, lang, now, now, now, deviceId || null, lang, platform],
     function (err) {
       if (err) {
         console.error('Erreur enregistrement token FCM:', err.message);
@@ -278,8 +309,10 @@ app.post('/api/fcm/unregister', (req, res) => {
   }
   db.run('DELETE FROM fcm_tokens WHERE token = ?', [token], function (err) {
     if (err) {
+      console.error(`❌ Erreur lors de la désinscription du token FCM:`, err.message);
       return res.status(500).json({ error: err.message });
     }
+    console.log(`🗑️ Token FCM désinscrit: ${token.slice(0, 20)}... (lignes affectées: ${this.changes})`);
     res.json({ success: true });
   });
 });
@@ -415,7 +448,7 @@ app.get('/api/dashboard/stats', (req, res) => {
       let iosCount = 0;
       
       platformRows.forEach(row => {
-        if (row.platform.toLowerCase() === 'ios') iosCount = row.count;
+        if (row.platform && row.platform.toLowerCase() === 'ios') iosCount = row.count;
         else androidCount += row.count; // Default to android
       });
 
@@ -423,14 +456,20 @@ app.get('/api/dashboard/stats', (req, res) => {
       db.all('SELECT id, price, date, ip_address, username FROM gold_prices ORDER BY id DESC LIMIT 50', (err, priceRows) => {
         if (err) return res.status(500).json({ error: err.message });
         
-        res.json({
-          activeConnections: Array.from(activeConnections.values()),
-          installations: {
-            android: androidCount,
-            ios: iosCount,
-            total: androidCount + iosCount
-          },
-          priceHistory: priceRows
+        // 3. Get Recent Connection History
+        db.all('SELECT id, ip_address, connected_at FROM connection_history ORDER BY id DESC LIMIT 100', (err, connHistoryRows) => {
+          if (err) return res.status(500).json({ error: err.message });
+
+          res.json({
+            activeConnections: Array.from(activeConnections.values()),
+            connectionHistory: connHistoryRows,
+            installations: {
+              android: androidCount,
+              ios: iosCount,
+              total: androidCount + iosCount
+            },
+            priceHistory: priceRows
+          });
         });
       });
     });
@@ -481,6 +520,8 @@ app.post('/api/price', (req, res) => {
         ip_address: ipAddress,
         username: user.username
       };
+
+      console.log(`💰 Nouveau prix de l'or enregistré par ${user.username} : ${finalPrice} ${currency}/${unit} (${ipAddress})`);
 
       // 1. Émettre le nouveau prix à tous les clients connectés via WebSockets
       io.emit('priceUpdate', newRecord);
@@ -608,7 +649,60 @@ app.put('/api/users/:id', (req, res) => {
     });
   });
 });
+
+// ── API: Connection Stats (Graphs) ──────────────────────────────────────────
+app.get('/api/dashboard/connection-stats', (req, res) => {
+  const { username, password } = req.query;
+  
+  db.get('SELECT * FROM users WHERE username = ? AND password = ? AND is_active = 1', [username, password], (err, admin) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!admin) return res.status(401).json({ error: 'Non autorisé' });
+
+    const runQuery = (sql) => new Promise((resolve, reject) => {
+      db.all(sql, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+
+    const hourlySql = `
+      SELECT strftime('%H:00', connected_at) as label, COUNT(*) as count 
+      FROM connection_history 
+      WHERE connected_at >= datetime('now', '-24 hours')
+      GROUP BY label ORDER BY label ASC`;
+    
+    const dailySql = `
+      SELECT strftime('%Y-%m-%d', connected_at) as label, COUNT(*) as count 
+      FROM connection_history 
+      WHERE connected_at >= datetime('now', '-30 days')
+      GROUP BY label ORDER BY label ASC`;
+
+    const weeklySql = `
+      SELECT strftime('%Y-W%W', connected_at) as label, COUNT(*) as count 
+      FROM connection_history 
+      WHERE connected_at >= datetime('now', '-12 weeks')
+      GROUP BY label ORDER BY label ASC`;
+
+    const monthlySql = `
+      SELECT strftime('%Y-%m', connected_at) as label, COUNT(*) as count 
+      FROM connection_history 
+      WHERE connected_at >= datetime('now', '-12 months')
+      GROUP BY label ORDER BY label ASC`;
+
+    Promise.all([
+      runQuery(hourlySql),
+      runQuery(dailySql),
+      runQuery(weeklySql),
+      runQuery(monthlySql)
+    ]).then(([hourly, daily, weekly, monthly]) => {
+      res.json({ hourly, daily, weekly, monthly });
+    }).catch(err => {
+      res.status(500).json({ error: err.message });
+    });
+  });
+});
 // ─────────────────────────────────────────────────────────────────────────────
+
 
 // Route Fallback pour les applications React (SPA)
 app.use((req, res) => {

@@ -1,16 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import {
-  Home, TrendingUp, BarChart2, Archive, Newspaper, Info, Phone,
-  Sun, Moon, Volume2, VolumeX,
-  AreaChart as ChartIcon, Shield, Zap, Eye, Smartphone, Headphones, ShieldCheck,
-  Menu, X, Bell
-} from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine as RechartReferenceLine
-} from 'recharts';
+import { Home, TrendingUp, BarChart2, Archive, Newspaper, Info, Phone, Sun, Moon, Volume2, VolumeX, AreaChart as ChartIcon, Shield, Zap, Eye, Smartphone, Headphones, ShieldCheck, Menu, X, Bell, Share2 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine as RechartReferenceLine } from 'recharts';
 import icon from '../assets/Logo_min.png';
 import logo from '../assets/logo.png';
 import goldBars from '../assets/gold-bars.png';
@@ -19,28 +11,65 @@ import bourse from '../assets/bourse.mp3';
 import { translations } from '../translations';
 import { notificationService } from '../services/notificationService';
 
-const SOCKET_SERVER_URL = 'https://goldprojectbackend-production.up.railway.app';
-const HISTORY_KEY = 'gold_price_history';
-
-// ── Inline SVG social icons ───────────────────────────────────────────────────
-const IconFacebook = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+// Custom Social Media Icons (since they are removed in newer Lucide versions)
+const Facebook = ({ size = 24, ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
     <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
   </svg>
 );
-const IconInstagram = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+
+const Instagram = ({ size = 24, ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
     <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-    <circle cx="12" cy="12" r="4" />
-    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
   </svg>
 );
-const IconYoutube = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
-    <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white" />
+
+const Youtube = ({ size = 24, ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
   </svg>
 );
+
+const SOCKET_SERVER_URL = 'https://goldprojectbackend-production.up.railway.app';
+const HISTORY_KEY = 'gold_price_history';
+
+
 
 // ── Helpers (same as PriceChart) ──────────────────────────────────────────────
 function loadLocalHistory() {
@@ -252,6 +281,11 @@ export default function HomePage() {
   const [footerMessage, setFooterMessage] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const stored = localStorage.getItem('notifications_enabled');
+    if (stored !== null) return stored === 'true';
+    return 'Notification' in window && Notification.permission === 'granted';
+  });
   const audioRef = useRef(null);
 
   const t = translations[lang] || translations['ar'];
@@ -295,6 +329,16 @@ export default function HomePage() {
   useEffect(() => {
     notificationService.register();
   }, [lang]);
+
+  // ── Check notification permission state ──
+  useEffect(() => {
+    const checkNotificationPermission = async () => {
+      const isEnabled = localStorage.getItem('notifications_enabled') !== 'false';
+      const granted = await notificationService.isPermissionGranted();
+      setNotificationsEnabled(granted && isEnabled);
+    };
+    checkNotificationPermission();
+  }, []);
 
   // ── Fetch history from server (same logic as PriceChart) ──
   useEffect(() => {
@@ -358,10 +402,25 @@ export default function HomePage() {
     fetchCurrent();
 
     // ── Socket.IO live updates ──
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const platform = isIOS ? 'ios' : 'android';
+
     const socket = io(SOCKET_SERVER_URL, {
-      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: Infinity,
+      query: { platform }
+    });
+
+    socket.on('connect', () => {
+      console.log('⚡ Socket.IO : Connecté au serveur');
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.warn('🔌 Socket.IO : Déconnecté. Raison :', reason);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('❌ Socket.IO : Erreur de connexion :', error.message);
     });
 
     // Demander la permission au démarrage sur mobile/web
@@ -370,6 +429,7 @@ export default function HomePage() {
     }
 
     socket.on('priceUpdate', (data) => {
+      console.log('📈 Socket.IO : Mise à jour du prix reçue', data);
       setPriceData(data);
       setPriceFlash(true);
 
@@ -379,7 +439,8 @@ export default function HomePage() {
       setTimeout(() => setShowToast(false), 5000);
 
       // Système Notification (Web Push / Service Worker)
-      if (Notification.permission === 'granted') {
+      const isEnabledLocally = localStorage.getItem('notifications_enabled') !== 'false';
+      if (isEnabledLocally && Notification.permission === 'granted') {
         const title = lang === 'ar' ? '🥇 تحديث سعر الذهب' : '🥇 Prix de l\'Or à jour';
         const options = {
           body: `${Math.floor(data.price)} ${data.currency} / ${data.unit}`,
@@ -428,6 +489,29 @@ export default function HomePage() {
     }
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Prix Or Maroc',
+      text: lang === 'ar' ? 'تابع سعر الذهب في المغرب مباشرة' : 'Suivez le prix de l\'or au Maroc en temps réel',
+      url: window.location.origin
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Share failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.origin);
+        alert(lang === 'ar' ? 'تم نسخ الرابط بنجاح!' : 'Lien copié avec succès !');
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+    }
+  };
+
   // ── Compute chart data (same as PriceChart) ──
   const filtered = filterByPeriod(history, chartPeriod).map(e => ({
     ...e,
@@ -470,34 +554,61 @@ export default function HomePage() {
           ))}
         </nav>
         <div className="hp-sidebar-extra">
-          <button className="hp-sidebar-btn" onClick={() => {
-            if ('Notification' in window) {
-              Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                  alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
+          <button className={`hp-sidebar-btn ${notificationsEnabled ? 'active' : ''}`} onClick={async () => {
+            if (notificationsEnabled) {
+              await notificationService.disable();
+              setNotificationsEnabled(false);
+              alert(lang === 'ar' ? 'تم إيقاف التنبيهات' : 'Notifications désactivées');
+            } else {
+              if ('Notification' in window) {
+                try {
+                  const permission = await Notification.requestPermission();
+                  if (permission === 'granted') {
+                    localStorage.setItem('notifications_enabled', 'true');
+                    const success = await notificationService.init();
+                    if (success) {
+                      setNotificationsEnabled(true);
+                      alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
+                    } else {
+                      alert(lang === 'ar' ? 'حدث خطأ أثناء تفعيل التنبيهات' : 'Erreur lors de l\'activation des notifications');
+                    }
+                  } else {
+                    alert(lang === 'ar' ? 'يرجى السماح بالتنبيهات في إعدادات متصفحك' : 'Veuillez autoriser les notifications dans les réglages de votre navigateur');
+                  }
+                } catch (err) {
+                  console.error("Error requesting notification permission:", err);
                 }
-              });
+              } else {
+                alert(lang === 'ar' ? 'متصفحك لا يدعم التنبيهات' : 'Votre navigateur ne supporte pas les notifications');
+              }
             }
           }}>
             <Bell size={20} />
-            <span>{lang === 'ar' ? 'تفعيل التنبيهات' : 'Activer Notifications'}</span>
+            <span>{notificationsEnabled 
+              ? (lang === 'ar' ? 'إيقاف التنبيهات' : 'Désactiver Notifications') 
+              : (lang === 'ar' ? 'تفعيل التنبيهات' : 'Activer Notifications')}</span>
           </button>
 
           <button className="hp-sidebar-btn" onClick={toggleAudio}>
             {isPlaying ? <Volume2 size={20} /> : <VolumeX size={20} />}
             <span>{isPlaying ? hp_t.musicOn : hp_t.musicOff}</span>
           </button>
+
+          <button className="hp-sidebar-btn" onClick={handleShare}>
+            <Share2 size={20} />
+            <span>{lang === 'ar' ? 'مشاركة التطبيق' : 'Partager l\'application'}</span>
+          </button>
         </div>
         <div className="hp-social">
-          <a href="#" aria-label="Facebook"><IconFacebook /></a>
-          <a href="#" aria-label="Instagram"><IconInstagram /></a>
-          <a href="#" aria-label="Youtube"><IconYoutube /></a>
+          <a href="https://www.facebook.com/p/F%C3%A9d%C3%A9ration-Nationale-des-Bijoutiers-100064652322771/" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><Facebook size={20} /></a>
+          <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
+          <a href="https://www.youtube.com/@FnbMaroc" target="_blank" rel="noopener noreferrer" aria-label="Youtube"><Youtube size={20} /></a>
         </div>
         <div className="hp-sidebar-admin">
           <div className="hp-admin-title">{lang === 'ar' ? 'منطقة الإدارة' : 'Zone Administration'}</div>
           <a href="https://goldprojectbackend-production.up.railway.app/PrixOr.apk" className="hp-admin-download" download>
             <ShieldCheck size={18} />
-            <span>{lang === 'ar' ? 'تحميل تطبيق المسؤول (Admin)' : 'App Admin (Android)'}</span>
+            <span>{lang === 'ar' ? 'تحميل تطبيق  (Android)' : 'App  (Android)'}</span>
           </a>
           <div className="hp-admin-info">
             {lang === 'ar'
@@ -846,11 +957,12 @@ export default function HomePage() {
           )}
 
           {footerMessage && (
-            <div className="hp-custom-footer-msg" style={{ 
-              padding: '1.5rem', 
-              textAlign: 'center', 
-              color: 'rgba(255, 255, 255, 0.5)', 
-              fontSize: '1rem', 
+            <div className="hp-custom-footer-msg" style={{
+              padding: '1.5rem',
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.5)',
+              fontSize: '1rem',
+              fontWeight: 'bold',
               borderTop: '1px solid rgba(255,215,0,0.1)',
               maxWidth: '800px',
               margin: '0 auto',

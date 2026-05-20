@@ -33,7 +33,7 @@ export default function AdminPanel() {
         const response = await fetch(`${SERVER_URL}/api/price`);
         if (response.ok) {
           const data = await response.json();
-          
+
           if (data) {
             if (data.price !== undefined) {
               setPrice(data.price.toString());
@@ -65,7 +65,7 @@ export default function AdminPanel() {
         setUsersList(data);
         setStatus({ type: '', message: '' });
       } else {
-        setStatus({ type: 'error', message: data.error || 'Erreur d\\'authentification' });
+        setStatus({ type: 'error', message: data.error || 'Erreur d\'authentification' });
       }
     } catch (err) {
       setStatus({ type: 'error', message: t.connError });
@@ -182,18 +182,18 @@ export default function AdminPanel() {
   return (
     <div className="admin-container" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <div className="admin-card" style={{ position: 'relative' }}>
-        
+
         {/* Language switcher */}
         <div style={{ position: 'absolute', top: '1.5rem', right: lang === 'ar' ? 'auto' : '1.5rem', left: lang === 'ar' ? '1.5rem' : 'auto' }}>
-          <select 
-            value={lang} 
+          <select
+            value={lang}
             onChange={(e) => setLang(e.target.value)}
             style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer', outline: 'none' }}
           >
-            <option value="fr" style={{color: '#000'}}>FR</option>
-            <option value="en" style={{color: '#000'}}>EN</option>
-            <option value="ar" style={{color: '#000'}}>AR</option>
-            <option value="es" style={{color: '#000'}}>ES</option>
+            <option value="fr" style={{ color: '#000' }}>FR</option>
+            <option value="en" style={{ color: '#000' }}>EN</option>
+            <option value="ar" style={{ color: '#000' }}>AR</option>
+            <option value="es" style={{ color: '#000' }}>ES</option>
           </select>
         </div>
 
@@ -206,7 +206,7 @@ export default function AdminPanel() {
           </Link>
         </div>
         <h1>{t.title}</h1>
-        
+
         {/* Identifiants Admin Globaux */}
         <div className="form-group" style={{ display: 'flex', gap: '1rem', flexDirection: lang === 'ar' ? 'row-reverse' : 'row', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '10px' }}>
           <div style={{ flex: 1 }}>
@@ -246,14 +246,14 @@ export default function AdminPanel() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #333' }}>
-          <button 
+          <button
             type="button"
             onClick={() => setActiveTab('price')}
             style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: 'none', color: activeTab === 'price' ? 'var(--gold-primary)' : 'var(--text-muted)', borderBottom: activeTab === 'price' ? '2px solid var(--gold-primary)' : 'none', cursor: 'pointer', fontWeight: 'bold' }}
           >
-            {lang === 'ar' ? 'تحديث السعر' : lang === 'en' ? 'Update Price' : lang === 'es' ? 'Actualizar Precio' : 'Prix de l\\'or'}
+            {lang === 'ar' ? 'تحديث السعر' : lang === 'en' ? 'Update Price' : lang === 'es' ? 'Actualizar Precio' : 'Prix de l\'or'}
           </button>
-          <button 
+          <button
             type="button"
             onClick={() => {
               setActiveTab('users');
@@ -282,8 +282,8 @@ export default function AdminPanel() {
               />
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn-primary"
               disabled={loading}
             >
@@ -300,23 +300,23 @@ export default function AdminPanel() {
             <form onSubmit={handleAddUser} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '10px', marginBottom: '1.5rem' }}>
               <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><UserPlus size={16} /> Ajouter un utilisateur</h3>
               <div style={{ display: 'flex', gap: '1rem', flexDirection: lang === 'ar' ? 'row-reverse' : 'row' }}>
-                <input 
-                  type="text" 
-                  placeholder="Username" 
-                  className="form-input" 
-                  required 
-                  value={newUser.username} 
-                  onChange={e => setNewUser({...newUser, username: e.target.value})} 
-                  style={{ flex: 1 }} 
+                <input
+                  type="text"
+                  placeholder="Username"
+                  className="form-input"
+                  required
+                  value={newUser.username}
+                  onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+                  style={{ flex: 1 }}
                 />
-                <input 
-                  type="password" 
-                  placeholder="Password" 
-                  className="form-input" 
-                  required 
-                  value={newUser.password} 
-                  onChange={e => setNewUser({...newUser, password: e.target.value})} 
-                  style={{ flex: 1 }} 
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="form-input"
+                  required
+                  value={newUser.password}
+                  onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                  style={{ flex: 1 }}
                 />
               </div>
               <button type="submit" className="btn-primary" style={{ marginTop: '1rem', padding: '0.5rem' }} disabled={loading}>
@@ -349,11 +349,11 @@ export default function AdminPanel() {
                         )}
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                        <button 
+                        <button
                           onClick={() => handleToggleUserStatus(u.id, u.is_active)}
                           disabled={loading}
-                          style={{ 
-                            background: u.is_active ? '#ef4444' : '#10b981', 
+                          style={{
+                            background: u.is_active ? '#ef4444' : '#10b981',
                             color: 'white', border: 'none', padding: '0.25rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'
                           }}
                         >

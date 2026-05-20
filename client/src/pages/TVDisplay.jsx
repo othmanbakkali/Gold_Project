@@ -148,14 +148,17 @@ export default function TVDisplay() {
 
     fetchInitialPrice();
 
-    // 2. Setup Socket.IO subscription
+    // 2. Socket.io for live updates
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const platform = isIOS ? 'ios' : 'android';
+
     const socket = io(SOCKET_SERVER_URL, {
-      transports: ['websocket', 'polling'], // Prioritize websocket but allow polling
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
+      query: { platform }
     });
 
     socket.on('connect', () => {
@@ -286,31 +289,7 @@ export default function TVDisplay() {
           {isFullscreen ? (lang === 'fr' ? 'Réduire' : lang === 'en' ? 'Exit' : 'تصغير') : (lang === 'fr' ? 'Plein écran' : lang === 'en' ? 'Fullscreen' : 'ملء الشاشة')}
         </button>
 
-        <span
-          style={{
-            marginLeft: '1rem',
-            background: 'rgba(239, 68, 68, 0.2)',
-            color: '#ef4444',
-            border: '1px solid #ef4444',
-            padding: '6px 12px',
-            borderRadius: '5px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontSize: '1rem',
-            fontWeight: 'bold'
-          }}
-        >
-          <span style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#ef4444',
-            display: 'inline-block',
-            boxShadow: '0 0 5px #ef4444'
-          }}></span>
-          بث التجريبي
-        </span>
+
       </div>
 
       {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}

@@ -24,7 +24,8 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* TV/Admin pages manage their own overflow */
+  overflow: hidden;
+  /* TV/Admin pages manage their own overflow */
   background-image:
     linear-gradient(rgba(11, 12, 16, 0.85), rgba(11, 12, 16, 0.98)),
     url('./assets/moroccan_bg.png');
@@ -41,7 +42,6 @@ body {
 }
 
 .global-footer {
-  position: absolute;
   bottom: 10px;
   width: 100%;
   text-align: center;
@@ -50,11 +50,13 @@ body {
   color: var(--text-muted, #999);
   z-index: 10;
 }
+
 .global-footer a {
   color: var(--gold-primary, #D4AF37);
   text-decoration: none;
   font-weight: 700;
 }
+
 .global-footer a:hover {
   text-decoration: underline;
 }
@@ -319,7 +321,8 @@ body {
   border-radius: 1.5rem;
   padding: 2rem;
   width: 95%;
-  max-width: 600px; /* Élargi de 450px à 600px */
+  max-width: 600px;
+  /* Élargi de 450px à 600px */
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   margin-bottom: 3rem;
 }
@@ -529,29 +532,29 @@ body {
   .price-chart-page {
     padding: 0.5rem !important;
   }
-  
+
   .chart-card {
     padding: 0.8rem !important;
     border-radius: 1rem !important;
   }
-  
+
   .chart-header {
     flex-direction: column;
     align-items: stretch !important;
     gap: 0.8rem;
   }
-  
+
   .period-selector {
     order: 3;
     justify-content: space-between !important;
   }
-  
+
   .period-selector button {
     flex: 1;
     padding: 0.4rem 0.2rem !important;
     font-size: 0.65rem !important;
   }
-  
+
   .stats-bar {
     flex-direction: column;
     align-items: flex-start !important;

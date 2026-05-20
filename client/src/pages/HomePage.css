@@ -241,6 +241,14 @@
   background: rgba(212, 175, 55, 0.08);
 }
 
+.hp-sidebar-btn.active {
+  color: var(--hp-gold);
+  border-color: var(--hp-gold);
+  background: rgba(212, 175, 55, 0.15);
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--hp-gold-glow);
+}
+
 .hp-download-btn {
   display: flex;
   align-items: center;
