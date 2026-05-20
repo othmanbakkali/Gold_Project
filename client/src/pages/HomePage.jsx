@@ -331,14 +331,29 @@ export default function HomePage() {
   }, [lang]);
 
   // ── Check notification permission state ──
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineMessage, setOfflineMessage] = useState('');
+
+  // Listener for online/offline events
   useEffect(() => {
-    const checkNotificationPermission = async () => {
-      const isEnabled = localStorage.getItem('notifications_enabled') !== 'false';
-      const granted = await notificationService.isPermissionGranted();
-      setNotificationsEnabled(granted && isEnabled);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      setOfflineMessage('⚠️ Connexion Internet non établie. Veuillez contacter votre administrateur.');
     };
-    checkNotificationPermission();
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
+
+  // Fonction utilitaire pour afficher le prix ou '-' si non disponible
+  const formatPrice = (price) => {
+    if (!price || price === 0) return '-';
+    return Math.floor(price);
+  };
 
   // ── Fetch history from server (same logic as PriceChart) ──
   useEffect(() => {
@@ -386,9 +401,12 @@ export default function HomePage() {
     const fetchCurrent = async () => {
       try {
         const res = await fetch(`${SOCKET_SERVER_URL}/api/price`);
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('Erreur réseau');
         const data = await res.json();
-        if (!data.price) return;
+        if (!data.price) {
+          setOfflineMessage('⚠️ Prix indisponible. Veuillez contacter votre administrateur.');
+          return;
+        }
         setPriceData(data);
         const dateStr = normalizeDate(data.date);
         setHistory(prev => {
@@ -396,8 +414,12 @@ export default function HomePage() {
           saveLocalHistory(updated);
           return updated;
         });
-      } catch { }
-      finally { setLoading(false); }
+      } catch (err) {
+        console.error('Fetch current price error:', err);
+        setOfflineMessage('⚠️ Connexion Internet non établie. Veuillez contacter votre administrateur.');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchCurrent();
 
@@ -408,6 +430,7 @@ export default function HomePage() {
     const socket = io(SOCKET_SERVER_URL, {
       reconnection: true,
       reconnectionAttempts: Infinity,
+      transports: ['websocket', 'polling'],
       query: { platform }
     });
 
@@ -415,12 +438,10 @@ export default function HomePage() {
       console.log('⚡ Socket.IO : Connecté au serveur');
     });
 
-    socket.on('disconnect', (reason) => {
-      console.warn('🔌 Socket.IO : Déconnecté. Raison :', reason);
-    });
-
     socket.on('connect_error', (error) => {
       console.error('❌ Socket.IO : Erreur de connexion :', error.message);
+      // Afficher le message d'erreur de connexion si l'API n'est pas disponible
+      setOfflineMessage('⚠️ Connexion au serveur échouée. Veuillez contacter votre administrateur.');
     });
 
     // Demander la permission au démarrage sur mobile/web
@@ -432,6 +453,15 @@ export default function HomePage() {
       console.log('📈 Socket.IO : Mise à jour du prix reçue', data);
       setPriceData(data);
       setPriceFlash(true);
+
+      // ── Mettre à jour le cache navigateur (Service Worker) ──────────────────
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CACHE_PRICE_UPDATE',
+          payload: data
+        });
+        console.log('💾 Cache navigateur mis à jour avec le nouveau prix:', data.price);
+      }
 
       // Toast Notification visuelle
       setToastData(data);
