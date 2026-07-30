@@ -7,10 +7,10 @@ const SERVER_URL = 'https://goldprojectbackend-production.up.railway.app';
 
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
-  if (typeof dateStr === 'string' && dateStr.includes(' ') && !dateStr.includes('T')) {
-    return new Date(dateStr.replace(' ', 'T') + 'Z');
-  }
-  return new Date(dateStr);
+  // Parse ISO string safely, then format using Casablanca timezone
+  const date = new Date(dateStr);
+  // Return Date object; formatting will apply timezone during toLocaleString calls
+  return date;
 };
 
 export default function AdminPanel() {
@@ -375,15 +375,28 @@ export default function AdminPanel() {
         )}
         {/* ✅ AJOUT ICI */}
         {lastUpdated && (
-          <div style={{ marginTop: '1rem', color: 'gray', fontSize: '0.9rem' }}>
-            🕒 {lang === 'ar' ? 'آخر تحديث' : lang === 'en' ? 'Last update' : lang === 'es' ? 'Última actualización' : 'Dernière mise à jour'} : {parseDate(lastUpdated)?.toLocaleString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'fr-FR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit'
-            })}
+          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              🕒 {lang === 'ar' ? 'آخر تحديث' : lang === 'en' ? 'Last update' : lang === 'es' ? 'Última actualización' : 'Dernière mise à jour'}
+            </div>
+            <div style={{ color: '#60a5fa', fontSize: '1rem', fontWeight: '500', marginTop: '0.2rem' }}>
+              {parseDate(lastUpdated)?.toLocaleDateString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                timeZone: 'Africa/Casablanca'
+              })}
+            </div>
+            <div style={{ color: 'var(--gold-primary)', fontSize: '1.4rem', fontWeight: '900', marginTop: '0.1rem', letterSpacing: '1px' }}>
+              {parseDate(lastUpdated)?.toLocaleTimeString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'Africa/Casablanca'
+              })}
+            </div>
           </div>
         )}
       </div>

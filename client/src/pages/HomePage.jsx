@@ -554,13 +554,17 @@ export default function HomePage() {
     ? filtered.reduce((s, d) => s + d.price, 0) / filtered.length
     : 0;
 
-  const basePrice = priceData?.price ? parseFloat(priceData.price) : 1085;
+  const basePrice = priceData?.price ? parseFloat(priceData.price) : null;
   const locale = lang === 'ar' ? 'ar-MA' : lang === 'fr' ? 'fr-FR' : lang === 'es' ? 'es-ES' : 'en-US';
   const formattedDate = currentTime.toLocaleString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const formattedClock = currentTime.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const priceDate = priceData?.date
-    ? new Date(normalizeDate(priceData.date)).toLocaleString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const priceDateObj = priceData?.date ? new Date(normalizeDate(priceData.date)) : null;
+  const priceDateDayStr = priceDateObj
+    ? priceDateObj.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : '──';
+  const priceDateTimeStr = priceDateObj
+    ? priceDateObj.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+    : '';
 
   return (
     <div className="hp-root" dir="rtl" data-theme={isDark ? 'dark' : 'light'}>
@@ -724,7 +728,24 @@ export default function HomePage() {
                     <img src={goldBars} alt="" className="hp-title-icon" />
                   </div>
                   <div className="hp-subtitle" dir={lang === 'ar' ? 'rtl' : 'ltr'}>{hp_t.subtitle}</div>
-                </div>
+				  <div className="hp-custom-footer-msg" style={{
+					  padding: '1.5rem',
+					  textAlign: 'center',
+					  color: 'rgba(255, 255, 255, 0.5)',
+					  fontSize: '1rem',
+					  fontWeight: 'bold',
+					  borderTop: '1px solid rgba(255,215,0,0.1)',
+					  maxWidth: '800px',
+					  margin: '0 auto',
+					  lineHeight: '1.6',
+					  whiteSpace: 'pre-wrap'
+					}}>
+					  {footerMessage}
+					</div>
+				</div>
+				
+					
+				  
               </div>
 
               {/* MIDDLE ROW */}
@@ -737,7 +758,10 @@ export default function HomePage() {
                       <span className="hp-badge-dot"></span>
                       <span>{hp_t.lastUpdate}</span>
                     </div>
-                    <div className="hp-price-date">📅 {priceDate}</div>
+                    <div className="hp-price-date-box">
+                      <div className="hp-price-date-day">{priceDateDayStr}</div>
+                      {priceDateTimeStr && <div className="hp-price-date-time">{priceDateTimeStr}</div>}
+                    </div>
                   </div>
                   <div className="hp-price-img-row" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <img src={goldBars} alt="or" className="hp-price-goldbars" />
@@ -746,7 +770,7 @@ export default function HomePage() {
 
                     <div className="hp-price-value">
                       <div className="hp-price-number">
-                        {loading ? '...' : Math.round(basePrice)}
+                        {loading ? '...' : (basePrice !== null ? Math.round(basePrice) : '-')} 
                       </div>
                       <div className="hp-price-label">{hp_t.currency}</div>
                     </div>
@@ -986,22 +1010,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {footerMessage && (
-            <div className="hp-custom-footer-msg" style={{
-              padding: '1.5rem',
-              textAlign: 'center',
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              borderTop: '1px solid rgba(255,215,0,0.1)',
-              maxWidth: '800px',
-              margin: '0 auto',
-              lineHeight: '1.6',
-              whiteSpace: 'pre-wrap'
-            }}>
-              {footerMessage}
-            </div>
-          )}
+          
 
           <footer className="global-footer" style={{ marginTop: 'auto', paddingTop: '2rem' }}>
             copyright &copy; 2026; <a href="https://sdbo.ma" target="_blank" rel="noreferrer">sdbo.ma</a>

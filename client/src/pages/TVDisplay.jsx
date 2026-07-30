@@ -314,7 +314,7 @@ export default function TVDisplay() {
             <span className="price-currency prefix">
               {t.startingFrom}
             </span>
-            {priceData?.price ? Math.floor(priceData.price) : "0"}
+            {priceData?.price ? Math.floor(priceData.price) : "-"}
             <span className="price-currencycp suffix">
               {t.currency}
             </span>
@@ -336,15 +336,28 @@ export default function TVDisplay() {
         </div>
       )}
 
-      <div className="last-updated">
-        {t.updatedAt} {priceData?.date ? parseDate(priceData.date)?.toLocaleString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'fr-FR', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }) : '...'}
+      <div className="last-updated" style={{ textAlign: 'center', margin: '1rem 0' }}>
+        <div style={{ opacity: 0.9, fontSize: '1rem', color: 'var(--text-muted)' }}>{t.updatedAt}</div>
+        {priceData?.date ? (
+          <div style={{ marginTop: '0.3rem' }}>
+            <div style={{ color: '#60a5fa', fontSize: '1.1rem', fontWeight: '500' }}>
+              {parseDate(priceData.date)?.toLocaleDateString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              })}
+            </div>
+            <div style={{ color: 'var(--gold-primary)', fontSize: '1.6rem', fontWeight: '900', marginTop: '0.2rem', letterSpacing: '1px' }}>
+              {parseDate(priceData.date)?.toLocaleTimeString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              })}
+            </div>
+          </div>
+        ) : '...'}
       </div>
 
       <div className="current-time" style={{ marginTop: '0.5rem', fontSize: '1.2rem', color: 'var(--gold-primary)', opacity: 0.8 }}>
