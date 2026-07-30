@@ -84,13 +84,22 @@ function addEntryIfNew(history, entry) {
   if (last && last.price === entry.price && last.date.slice(0, 16) === entry.date.slice(0, 16)) return history;
   return [...history, entry];
 }
-function filterByPeriod(history, period) {
+function filterByPeriod(history, period, startDate, endDate) {
+  if (period === 'custom' && startDate && endDate) {
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T23:59:59');
+    return history.filter(e => {
+      const d = new Date(e.date);
+      return d >= start && d <= end;
+    });
+  }
   const now = new Date();
   const cutoff = new Date(now);
   if (period === '3days') cutoff.setDate(cutoff.getDate() - 3);
   else if (period === 'week') cutoff.setDate(cutoff.getDate() - 7);
   else if (period === 'month') cutoff.setMonth(cutoff.getMonth() - 1);
   else if (period === '3months') cutoff.setMonth(cutoff.getMonth() - 3);
+  else if (period === 'year' || period === '1year') cutoff.setFullYear(cutoff.getFullYear() - 1);
   return history.filter(e => new Date(e.date) >= cutoff);
 }
 function formatDate(dateStr, period) {
@@ -101,7 +110,7 @@ function formatDate(dateStr, period) {
     const yy = d.getFullYear();
     const hh = String(d.getHours()).padStart(2, '0');
     const min = String(d.getMinutes()).padStart(2, '0');
-    if (period === 'month' || period === '3months') return `${yy}/${mm}/${dd}`;
+    if (period === 'month' || period === '3months' || period === 'year' || period === '1year' || period === 'custom') return `${yy}/${mm}/${dd}`;
     return `${dd}/${mm} ${hh}:${min}`;
   } catch { return dateStr; }
 }
@@ -150,6 +159,8 @@ const PERIODS = [
   { key: 'week', tKey: 'week' },
   { key: 'month', tKey: 'month' },
   { key: '3months', tKey: 'months3' },
+  { key: 'year', tKey: 'year' },
+  { key: 'custom', tKey: 'custom' },
 ];
 
 const ABOUT_CONTENT = {
@@ -272,6 +283,8 @@ export default function HomePage() {
   const [isDark, setIsDark] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('week');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [priceFlash, setPriceFlash] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -359,7 +372,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`${SOCKET_SERVER_URL}/api/price/history?period=month`);
+        const res = await fetch(`${SOCKET_SERVER_URL}/api/price/history?period=year`);
         if (!res.ok) throw new Error();
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -543,7 +556,7 @@ export default function HomePage() {
   };
 
   // ── Compute chart data (same as PriceChart) ──
-  const filtered = filterByPeriod(history, chartPeriod).map(e => ({
+  const filtered = filterByPeriod(history, chartPeriod, startDate, endDate).map(e => ({
     ...e,
     formattedDate: formatDate(e.date, chartPeriod),
     price: parseFloat(e.price),
@@ -799,6 +812,53 @@ export default function HomePage() {
                       ))}
                     </div>
                   </div>
+
+                  {chartPeriod === 'custom' && (
+                    <div className="hp-custom-date-picker" style={{
+                      display: 'flex',
+                      gap: '0.6rem',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexWrap: 'wrap',
+                      marginTop: '0.6rem',
+                      marginBottom: '0.6rem',
+                      padding: '0.5rem',
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--hp-dark-border)'
+                    }}>
+                      <label style={{ fontSize: '0.82rem', color: 'var(--hp-gold)' }}>{tPer.from} :</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        style={{
+                          background: 'var(--hp-dark-panel)',
+                          border: '1px solid var(--hp-dark-border)',
+                          color: '#fff',
+                          padding: '0.3rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.8rem',
+                          outline: 'none'
+                        }}
+                      />
+                      <label style={{ fontSize: '0.82rem', color: 'var(--hp-gold)' }}>{tPer.to} :</label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                        style={{
+                          background: 'var(--hp-dark-panel)',
+                          border: '1px solid var(--hp-dark-border)',
+                          color: '#fff',
+                          padding: '0.3rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.8rem',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Stats row */}
                   {filtered.length > 0 && (

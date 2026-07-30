@@ -41,7 +41,15 @@ function addEntryIfNew(history, newEntry) {
   return [...history, newEntry];
 }
 
-function filterByPeriod(history, period) {
+function filterByPeriod(history, period, startDate, endDate) {
+  if (period === 'custom' && startDate && endDate) {
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T23:59:59');
+    return history.filter(e => {
+      const d = new Date(e.date);
+      return d >= start && d <= end;
+    });
+  }
   const now = new Date();
   const cutoff = new Date(now);
   if (period === '3days') {
@@ -52,6 +60,8 @@ function filterByPeriod(history, period) {
     cutoff.setMonth(cutoff.getMonth() - 1);
   } else if (period === '3months') {
     cutoff.setMonth(cutoff.getMonth() - 3);
+  } else if (period === 'year' || period === '1year') {
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
   }
   return history.filter(e => new Date(e.date) >= cutoff);
 }
@@ -65,7 +75,7 @@ function formatDate(dateStr, period) {
     const hh = String(d.getHours()).padStart(2, '0');
     const min = String(d.getMinutes()).padStart(2, '0');
     
-    if (period === 'month' || period === '3months') {
+    if (period === 'month' || period === '3months' || period === 'year' || period === 'custom') {
       return `${yy}/${mm}/${dd}`;
     }
     return `${dd}/${mm} ${hh}:${min}`;
@@ -99,16 +109,19 @@ function seedHistoricalData() {
 
 export default function PriceChart() {
   const [period, setPeriod] = useState('week');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState('ar');
   const [history, setHistory] = useState([]);
   const t = translations[lang].tv;
+  const tPer = translations[lang].periods;
 
   // Fetch history from server
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`${SOCKET_SERVER_URL}/api/price/history?period=month`);
+        const res = await fetch(`${SOCKET_SERVER_URL}/api/price/history?period=year`);
         if (!res.ok) throw new Error();
         const data = await res.json();
         
@@ -177,7 +190,7 @@ export default function PriceChart() {
     fetchCurrent();
   }, []);
 
-  const filtered = filterByPeriod(history, period).map(e => ({
+  const filtered = filterByPeriod(history, period, startDate, endDate).map(e => ({
     ...e,
     formattedDate: formatDate(e.date, period),
     price: parseFloat(e.price),
@@ -238,18 +251,24 @@ export default function PriceChart() {
             <ArrowLeft size={18} /> {t.back}
           </Link>
 
-          <div className="period-selector" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div className="period-selector" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
             <button onClick={() => setPeriod('3days')} className={period === '3days' ? 'btn-primary' : 'form-input'} style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.75rem' }}>
-              {t.last3Days}
+              {tPer.days3}
             </button>
             <button onClick={() => setPeriod('week')} className={period === 'week' ? 'btn-primary' : 'form-input'} style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.75rem' }}>
-              {t.lastWeek}
+              {tPer.week}
             </button>
             <button onClick={() => setPeriod('month')} className={period === 'month' ? 'btn-primary' : 'form-input'} style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.75rem' }}>
-              {t.lastMonth}
+              {tPer.month}
             </button>
             <button onClick={() => setPeriod('3months')} className={period === '3months' ? 'btn-primary' : 'form-input'} style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.75rem' }}>
-              {t.last3Months}
+              {tPer.months3}
+            </button>
+            <button onClick={() => setPeriod('year')} className={period === 'year' ? 'btn-primary' : 'form-input'} style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.75rem' }}>
+              {tPer.year}
+            </button>
+            <button onClick={() => setPeriod('custom')} className={period === 'custom' ? 'btn-primary' : 'form-input'} style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.75rem' }}>
+              {tPer.custom}
             </button>
           </div>
 
@@ -261,6 +280,52 @@ export default function PriceChart() {
             <option value="es">ES</option>
           </select>
         </div>
+
+        {period === 'custom' && (
+          <div style={{
+            display: 'flex',
+            gap: '0.6rem',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+            padding: '0.5rem',
+            background: 'rgba(255,255,255,0.03)',
+            borderRadius: '8px',
+            border: '1px solid rgba(212, 175, 55, 0.2)'
+          }}>
+            <label style={{ fontSize: '0.82rem', color: 'var(--gold-primary)' }}>{tPer.from} :</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              style={{
+                background: 'rgba(11, 12, 16, 0.95)',
+                border: '1px solid rgba(212, 175, 55, 0.3)',
+                color: '#fff',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                outline: 'none'
+              }}
+            />
+            <label style={{ fontSize: '0.82rem', color: 'var(--gold-primary)' }}>{tPer.to} :</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              style={{
+                background: 'rgba(11, 12, 16, 0.95)',
+                border: '1px solid rgba(212, 175, 55, 0.3)',
+                color: '#fff',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+        )}
 
         {/* ── Title ── */}
         <h1 style={{ color: 'var(--gold-primary)', textAlign: 'center', marginBottom: '1rem', fontSize: 'clamp(1.2rem, 4vw, 1.6rem)', fontWeight: '700' }}>

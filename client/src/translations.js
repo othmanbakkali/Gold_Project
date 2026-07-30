@@ -12,7 +12,11 @@ export const translations = {
       "days3": "3 derniers jours",
       "week": "Semaine",
       "month": "Mois",
-      "months3": "3 mois"
+      "months3": "3 mois",
+      "year": "1 an",
+      "custom": "Personnalisé",
+      "from": "Du",
+      "to": "Au"
     },
     "features": [
       {
@@ -115,7 +119,11 @@ export const translations = {
       "days3": "Last 3 Days",
       "week": "Week",
       "month": "Month",
-      "months3": "3 Months"
+      "months3": "3 Months",
+      "year": "1 Year",
+      "custom": "Custom",
+      "from": "From",
+      "to": "To"
     },
     "features": [
       {
@@ -216,7 +224,11 @@ export const translations = {
       "days3": "آخر 3 أيام",
       "week": "الأسبوع",
       "month": "الشهر",
-      "months3": "3 أشهر"
+      "months3": "3 أشهر",
+      "year": "سنة",
+      "custom": "مخصص",
+      "from": "من",
+      "to": "إلى"
     },
     "features": [
       {
@@ -317,7 +329,11 @@ export const translations = {
       "days3": "Últimos 3 días",
       "week": "Semana",
       "month": "Mes",
-      "months3": "3 meses"
+      "months3": "3 meses",
+      "year": "1 año",
+      "custom": "Personalizado",
+      "from": "Desde",
+      "to": "Hasta"
     },
     "features": [
       {
