@@ -176,6 +176,8 @@ export const notificationService = {
 
       if (!registration) {
         registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      } else {
+        await registration.update().catch(() => {});
       }
 
       // Attendre que le SW soit actif s'il est en cours d'activation

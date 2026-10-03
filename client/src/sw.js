@@ -1,15 +1,15 @@
 import { precacheAndRoute } from 'workbox-precaching';
 
+// ── Cycle de vie du Service Worker ──────────────────────────────────────────
 self.addEventListener('install', (event) => {
-  // Force le SW à s'installer immédiatement sans attendre les anciens SW
   event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
-  // Prend le contrôle de tous les clients dès l'activation
   event.waitUntil(self.clients.claim());
 });
 
+// Pré-cache des assets générés par Vite
 precacheAndRoute(self.__WB_MANIFEST || []);
 
 // ── Nom du cache pour les données de prix ─────────────────────────────────────
@@ -61,7 +61,6 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', async (event) => {
   if (!event.data) return;
 
-  // Activation immédiate demandée par l'application
   if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
     return;
@@ -82,41 +81,52 @@ self.addEventListener('message', async (event) => {
   }
 });
 
-// Scripts Firebase pour le Service Worker
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+// ── Gestion native des notifications Push (FCM / Web Push) ────────────────────
+self.addEventListener('push', (event) => {
+  console.log('[sw.js] Push event reçu');
+  let title = '🥇 تحديث سعر الذهب';
+  let body = 'سعر جديد متوفر الآن';
+  let data = {};
 
-firebase.initializeApp({
-  apiKey: "AIzaSyBNdUTT7RdHKM1B3KHt9zWDpNkt7iZ_mKA",
-  authDomain: "goldproject-f4e0e.firebaseapp.com",
-  projectId: "goldproject-f4e0e",
-  storageBucket: "goldproject-f4e0e.firebasestorage.app",
-  messagingSenderId: "77898368295",
-  appId: "1:77898368295:web:65f938df7f33f01d169502"
-});
+  if (event.data) {
+    try {
+      const json = event.data.json();
+      const notification = json.notification || json.data || json;
+      title = notification.title || title;
+      body = notification.body || notification.message || body;
+      data = json;
+    } catch (e) {
+      body = event.data.text() || body;
+    }
+  }
 
-const messaging = firebase.messaging();
-
-// Gérer les messages en arrière-plan
-messaging.onBackgroundMessage((payload) => {
-  console.log('[sw.js] Message reçu en arrière-plan:', payload);
-  const title = payload.notification?.title || '🥇 تحديث سعر الذهب';
   const options = {
-    body: payload.notification?.body || 'سعر جديد متوفر الآن',
+    body: body,
     icon: '/icon.png',
     badge: '/favicon.svg',
-    data: payload.data,
+    data: data,
     vibrate: [200, 100, 200],
     tag: 'price-update',
     renotify: true
   };
-  return self.registration.showNotification(title, options);
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow('/')
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('/');
+      }
+    })
   );
 });
-
