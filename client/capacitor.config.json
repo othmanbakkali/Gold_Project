@@ -1,5 +1,14 @@
 {
   "appId": "com.gold.app",
   "appName": "PrixOr",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://www.prixormaroc.com",
+    "cleartext": true,
+    "allowNavigation": [
+      "www.prixormaroc.com",
+      "prixormaroc.com",
+      "goldprojectbackend-production.up.railway.app"
+    ]
+  }
 }

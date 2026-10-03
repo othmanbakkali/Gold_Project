@@ -60,9 +60,28 @@ export const notificationService = {
 
     if (Capacitor.isNativePlatform()) {
       try {
+        // 1. Créer impérativement le channel pour Android 8.0+
+        await FirebaseMessaging.createChannel({
+          id: 'gold_price_updates',
+          name: "Alertes Prix de l'Or",
+          description: "Notifications pour les mises à jour du prix de l'or",
+          importance: 5,
+          visibility: 1,
+          sound: 'default',
+          vibration: true,
+          lights: true,
+          lightColor: '#D4AF37'
+        }).catch(() => {});
+
+        // 2. Sur Android natif, demander la permission dès l'ouverture
         const perm = await FirebaseMessaging.checkPermissions();
         if (perm.receive === 'granted') {
           return await this.register();
+        } else {
+          const req = await FirebaseMessaging.requestPermissions();
+          if (req.receive === 'granted') {
+            return await this.register();
+          }
         }
       } catch (err) {
         console.warn('Erreur vérification permission native:', err.message);

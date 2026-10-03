@@ -3,7 +3,12 @@
   "appName": "PrixOr Admin",
   "webDir": "dist",
   "server": {
-    "url": "https://gold.techniskane.com/#/admin",
-    "allowNavigation": ["gold.techniskane.com"]
+    "url": "https://www.prixormaroc.com/#/admin",
+    "cleartext": true,
+    "allowNavigation": [
+      "www.prixormaroc.com",
+      "prixormaroc.com",
+      "goldprojectbackend-production.up.railway.app"
+    ]
   }
 }
