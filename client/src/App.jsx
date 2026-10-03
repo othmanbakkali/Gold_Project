@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import TVDisplay from './pages/TVDisplay';
 import PriceChart from './pages/PriceChart';
+import AdminPanel from './pages/AdminPanel';
+import AppUpdateModal from './components/AppUpdateModal';
 import { Capacitor } from '@capacitor/core';
 import { notificationService } from './services/notificationService';
 import './pages/HomePage.css';
@@ -110,10 +112,12 @@ function App() {
     <HashRouter>
       <PWAManifestManager />
       <RedirectHandler />
+      <AppUpdateModal />
       <Routes>
         <Route path="/"      element={<HomePage />} />
         <Route path="/TV"    element={<TVDisplay />} />
         <Route path="/chart" element={<PriceChart />} />
+        <Route path="/admin" element={<AdminPanel />} />
       </Routes>
     </HashRouter>
   );

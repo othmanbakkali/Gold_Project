@@ -1,0 +1,42 @@
+-- Front END
+
+npm run build
+npm run deploy
+❗ Si deploy ne marche pas → méthode manuelle
+npm run build
+cd dist
+git init
+git add .
+git commit -m "deploy"
+git branch -M gh-pages
+git remote add origin https://github.com/othmanbakkali/Gold_Project.git
+git push -f origin gh-pages
+
+
+-- BAckend
+git add .
+git commit -m "add POST /api/price"
+git push
+
+
+npm run build
+cd dist
+git init
+git add .
+git commit -m "deploy"
+git branch -M main
+git remote add origin https://github.com/othmanbakkali/Gold_Project.git
+git push -f origin main
+
+
+cd dist ; git init ; git checkout -b gh-pages ; git add . ; git commit -m "Deploy" ; git remote add origin https://github.com/othmanbakkali/admin-client.git ; git push -f origin gh-pages
+
+
+npm run build ; 
+cd dist ; 
+git init ; 
+git checkout -b gh-pages ; 
+git add . ; 
+git commit -m "Add PWA support" ; 
+git remote add origin https://github.com/othmanbakkali/admin-client.git ; 
+git push -f origin gh-pages
