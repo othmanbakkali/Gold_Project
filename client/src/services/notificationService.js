@@ -125,7 +125,7 @@ export const notificationService = {
         if (result.receive === 'granted') {
           const registered = await this.register();
           localStorage.setItem('notifications_enabled', 'true');
-          return { success: registered };
+          return registered;
         } else {
           return { success: false, reason: 'permission_denied' };
         }
@@ -143,7 +143,7 @@ export const notificationService = {
         if (permission === 'granted') {
           localStorage.setItem('notifications_enabled', 'true');
           const registered = await this.registerWebPush();
-          return { success: registered };
+          return registered;
         } else {
           return { success: false, reason: 'permission_denied' };
         }
@@ -156,23 +156,38 @@ export const notificationService = {
 
   async registerWebPush() {
     try {
+      if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+        return { success: false, reason: 'not_supported' };
+      }
+
       if (!messaging) {
         messaging = getMessaging(app);
       }
 
       let registration = null;
-      if ('serviceWorker' in navigator) {
-        try {
-          registration = await Promise.race([
-            navigator.serviceWorker.ready,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-          ]);
-        } catch (e) {
-          registration = await navigator.serviceWorker.getRegistration();
-        }
+      try {
+        registration = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ]);
+      } catch (e) {
+        registration = await navigator.serviceWorker.getRegistration();
+      }
 
-        if (!registration) {
-          registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      if (!registration) {
+        registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      }
+
+      // Attendre que le SW soit actif s'il est en cours d'activation
+      if (registration && !registration.active) {
+        const sw = registration.installing || registration.waiting;
+        if (sw) {
+          await new Promise((resolve) => {
+            sw.addEventListener('statechange', (e) => {
+              if (e.target.state === 'activated') resolve();
+            });
+            setTimeout(resolve, 3000);
+          });
         }
       }
 
@@ -185,24 +200,20 @@ export const notificationService = {
         console.log('Web FCM Token obtenu avec succès:', token.slice(0, 15) + '...');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const platform = isIOS ? 'ios' : 'web';
-        await this.sendTokenToServer(token, platform);
+        const serverSaved = await this.sendTokenToServer(token, platform);
         localStorage.setItem('notifications_enabled', 'true');
-        return true;
+        return { success: true, token };
       } else {
         console.warn('Aucun token Web FCM obtenu.');
-        return false;
+        return { success: false, reason: 'no_token', message: 'Impossible d\'obtenir le token FCM du navigateur.' };
       }
     } catch (err) {
       console.error('Erreur lors de l\'obtention du token Web Push:', err);
-      return false;
+      return { success: false, reason: 'token_error', error: err.message };
     }
   },
 
   async register() {
-    if (localStorage.getItem('notifications_enabled') === 'false') {
-      return false;
-    }
-
     if (Capacitor.isNativePlatform()) {
       try {
         const result = await FirebaseMessaging.getToken();
@@ -220,16 +231,16 @@ export const notificationService = {
           });
           this.tokenListenerAdded = true;
         }
-        return true;
+        return { success: true };
       } catch (err) {
         console.error('Erreur enregistrement natif:', err);
-        return false;
+        return { success: false, error: err.message };
       }
     } else {
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         return await this.registerWebPush();
       }
-      return false;
+      return { success: false, reason: 'not_granted' };
     }
   },
 

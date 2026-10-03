@@ -344,6 +344,38 @@ export default function HomePage() {
     notificationService.register();
   }, [lang]);
 
+  const handleToggleNotifications = async () => {
+    if (notificationsEnabled) {
+      await notificationService.disable();
+      setNotificationsEnabled(false);
+      alert(lang === 'ar' ? 'تم إيقاف التنبيهات' : 'Notifications désactivées');
+      return;
+    }
+
+    const res = await notificationService.requestPermissionAndRegister();
+    if (res && res.success) {
+      setNotificationsEnabled(true);
+      alert(lang === 'ar' ? '✅ تم تفعيل التنبيهات بنجاح! ستصلك إشعارات بالأسعار الجديدة.' : '✅ Notifications activées avec succès ! Vous recevrez les alertes de prix.');
+    } else if (res && res.reason === 'ios_not_standalone') {
+      alert(lang === 'ar' 
+        ? '📱 على هواتف آيفون (iPhone):\nلتفعيل الإشعارات، يجب أولاً إضافة التطبيق إلى الشاشة الرئيسية:\n1. اضغط على زر المشاركة (مربع بسهم ⎋)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. افتح التطبيق من شاشة هاتفك وفعّل التنبيهات.' 
+        : '📱 Sur iPhone :\nPour activer les notifications, vous devez d\'abord ajouter l\'application à l\'écran d\'accueil :\n1. Appuyez sur le bouton Partager ⎋\n2. Choisissez « Sur l\'écran d\'accueil »\n3. Ouvrez ensuite l\'application depuis votre écran d\'accueil pour activer les alertes.');
+    } else if (res && res.reason === 'permission_denied') {
+      alert(lang === 'ar' 
+        ? '⚠️ تم رفض إذن الإشعارات في متصفحك أو هاتفك.\nيرجى الدخول إلى إعدادات الهاتف > التطبيقات أو الضغط على رمز القفل 🔒 بجانب الرابط للسماح بالإشعارات.' 
+        : '⚠️ Les notifications sont refusées dans vos réglages.\nVeuillez autoriser les notifications en cliquant sur le cadenas 🔒 à côté de l\'adresse ou dans les Paramètres de votre téléphone.');
+    } else if (res && res.reason === 'not_supported') {
+      alert(lang === 'ar' 
+        ? 'متصفحك لا يدعم الإشعارات الفورية. يرجى فتح الموقع في Google Chrome أو Safari أو تثبيت التطبيق.' 
+        : 'Ce navigateur ne supporte pas les notifications Web Push. Veuillez utiliser Google Chrome, Safari ou installer l\'application.');
+    } else {
+      const errMsg = res && (res.error || res.message);
+      alert(lang === 'ar' 
+        ? `تعذر تفعيل التنبيهات${errMsg ? ` (${errMsg})` : ''}. يرجى التحقق من اتصالك بالإنترنت.` 
+        : `Impossible d'activer les notifications${errMsg ? ` (${errMsg})` : ''}. Veuillez vérifier votre connexion.`);
+    }
+  };
+
   // ── Check notification permission state ──
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineMessage, setOfflineMessage] = useState('');
@@ -602,27 +634,7 @@ export default function HomePage() {
           ))}
         </nav>
         <div className="hp-sidebar-extra">
-          <button className={`hp-sidebar-btn ${notificationsEnabled ? 'active' : ''}`} onClick={async () => {
-            if (notificationsEnabled) {
-              await notificationService.disable();
-              setNotificationsEnabled(false);
-              alert(lang === 'ar' ? 'تم إيقاف التنبيهات' : 'Notifications désactivées');
-            } else {
-              const res = await notificationService.requestPermissionAndRegister();
-              if (res.success) {
-                setNotificationsEnabled(true);
-                alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
-              } else if (res.reason === 'ios_not_standalone') {
-                alert(lang === 'ar' 
-                  ? '📱 على هواتف آيفون (iPhone):\nيرجى أولاً إضافة التطبيق إلى الشاشة الرئيسية (زر المشاركة ⎋ ثم "إضافة إلى الشاشة الرئيسية") ثم فتح التطبيق وتفعيل التنبيهات.' 
-                  : '📱 Sur iPhone :\nVeuillez d\'abord ajouter l\'application à l\'écran d\'accueil (Partager ⎋ -> « Sur l\'écran d\'accueil »), puis ouvrir l\'application pour activer les notifications.');
-              } else if (res.reason === 'permission_denied') {
-                alert(lang === 'ar' ? 'يرجى السماح بالتنبيهات في إعدادات متصفحك أو هاتفك' : 'Veuillez autoriser les notifications dans les réglages de votre appareil');
-              } else {
-                alert(lang === 'ar' ? 'تعذر تفعيل التنبيهات على هذا الجهاز' : 'Impossible d\'activer les notifications sur cet appareil');
-              }
-            }
-          }}>
+          <button className={`hp-sidebar-btn ${notificationsEnabled ? 'active' : ''}`} onClick={handleToggleNotifications}>
             <Bell size={20} />
             <span>{notificationsEnabled 
               ? (lang === 'ar' ? 'إيقاف التنبيهات' : 'Désactiver Notifications') 
@@ -690,21 +702,7 @@ export default function HomePage() {
               <Bell size={20} style={{ color: '#d4af37', flexShrink: 0 }} />
               <span>{lang === 'ar' ? 'فعّل إشعارات الهاتف لتصلك تحديثات أسعار الذهب أولاً بأول' : 'Activez les notifications pour recevoir les alertes de prix en temps réel'}</span>
             </div>
-            <button className="hp-install-btn" onClick={async () => {
-              const res = await notificationService.requestPermissionAndRegister();
-              if (res.success) {
-                setNotificationsEnabled(true);
-                alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
-              } else if (res.reason === 'ios_not_standalone') {
-                alert(lang === 'ar' 
-                  ? '📱 على هواتف آيفون (iPhone):\nيرجى أولاً إضافة التطبيق إلى الشاشة الرئيسية (زر المشاركة ⎋ ثم "إضافة إلى الشاشة الرئيسية") ثم فتح التطبيق وتفعيل التنبيهات.' 
-                  : '📱 Sur iPhone :\nVeuillez d\'abord ajouter l\'application à l\'écran d\'accueil (Partager ⎋ -> « Sur l\'écran d\'accueil »), puis ouvrir l\'application pour activer les notifications.');
-              } else if (res.reason === 'permission_denied') {
-                alert(lang === 'ar' ? 'يرجى السماح بالتنبيهات في إعدادات متصفحك أو هاتفك' : 'Veuillez autoriser les notifications dans les réglages de votre appareil');
-              } else {
-                alert(lang === 'ar' ? 'تعذر تفعيل التنبيهات على هذا الجهاز' : 'Impossible d\'activer les notifications sur cet appareil');
-              }
-            }}>
+            <button className="hp-install-btn" onClick={handleToggleNotifications}>
               {lang === 'ar' ? 'تفعيل الآن' : 'Activer'}
             </button>
             <button 
