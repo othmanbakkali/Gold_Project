@@ -335,7 +335,44 @@ app.use((req, res, next) => {
 const clientDistPath = path.resolve(__dirname, './public/dist');
 console.log('Serving static files from:', clientDistPath);
 
-app.use(express.static(clientDistPath));
+app.use(express.static(clientDistPath, {
+  setHeaders: (res, filePath) => {
+    const normalized = filePath.replace(/\\/g, '/');
+    // Ne jamais mettre en cache sw.js, registerSW.js, index.html et manifests pour permettre la mise à jour PWA instantanée
+    if (
+      normalized.endsWith('/sw.js') ||
+      normalized.endsWith('/sw.mjs') ||
+      normalized.endsWith('/registerSW.js') ||
+      normalized.endsWith('/index.html') ||
+      normalized.endsWith('.webmanifest') ||
+      normalized.endsWith('manifest-admin.json') ||
+      normalized.endsWith('manifest.json')
+    ) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else if (normalized.includes('/assets/')) {
+      // Les bundles Vite dans assets/ sont hashés (ex: index-C69kdiC5.js), mise en cache longue
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
+
+// Route pour vérifier la version/date de compilation du frontend
+app.get('/api/frontend-version', (req, res) => {
+  try {
+    const indexFile = path.join(clientDistPath, 'index.html');
+    if (fs.existsSync(indexFile)) {
+      const stats = fs.statSync(indexFile);
+      return res.json({
+        buildTime: stats.mtimeMs,
+        buildDate: stats.mtime.toISOString(),
+      });
+    }
+  } catch (e) {}
+  res.json({ buildTime: Date.now() });
+});
+
 
 // Routes pour le téléchargement des APK
 app.get('/PrixOr.apk', (req, res) => {

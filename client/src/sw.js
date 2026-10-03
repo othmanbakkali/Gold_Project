@@ -55,9 +55,17 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// ── Réception des mises à jour de prix depuis l'app (Socket.IO) ──────────────
+// ── Réception des messages depuis l'application ─────────────────────────────
 self.addEventListener('message', async (event) => {
-  if (event.data && event.data.type === 'CACHE_PRICE_UPDATE') {
+  if (!event.data) return;
+
+  // Activation immédiate demandée par l'application
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+
+  if (event.data.type === 'CACHE_PRICE_UPDATE') {
     const priceData = event.data.payload;
     try {
       const cache = await caches.open(PRICE_CACHE_NAME);
