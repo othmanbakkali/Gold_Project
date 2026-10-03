@@ -1,3 +1,5 @@
+import { precacheAndRoute } from 'workbox-precaching';
+
 self.addEventListener('install', (event) => {
   // Force le SW à s'installer immédiatement sans attendre les anciens SW
   event.waitUntil(self.skipWaiting());
@@ -8,7 +10,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-precacheAndRoute(self.__WB_MANIFEST);
+precacheAndRoute(self.__WB_MANIFEST || []);
 
 // ── Nom du cache pour les données de prix ─────────────────────────────────────
 const PRICE_CACHE_NAME = 'prix-or-api-cache-v1';
