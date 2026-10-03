@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { io } from 'socket.io-client';
-import { Smartphone, Download, RefreshCw, AlertTriangle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Smartphone, Download, RefreshCw, AlertTriangle, Sparkles, CheckCircle2, X } from 'lucide-react';
 import { APP_VERSION, APP_VERSION_CODE, compareVersions } from '../version';
 import './AppUpdateModal.css';
 
@@ -13,6 +13,7 @@ export default function AppUpdateModal() {
   const [updateInfo, setUpdateInfo] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadStarted, setDownloadStarted] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem('hp_lang') || 'ar');
 
   const isNative = Capacitor.isNativePlatform();
@@ -25,7 +26,6 @@ export default function AppUpdateModal() {
       setLang(currentLang);
     };
     window.addEventListener('storage', handleStorageChange);
-    // Poll briefly in case language toggles inside the same window
     const interval = setInterval(handleStorageChange, 2000);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -37,10 +37,17 @@ export default function AppUpdateModal() {
   const evaluateVersion = (config) => {
     if (!config) return;
 
+    // Éviter de reboucler si l'utilisateur vient de cliquer sur mettre à jour
+    const justApplied = sessionStorage.getItem('prixor_update_applied_at');
+    if (justApplied && Date.now() - parseInt(justApplied, 10) < 45000) {
+      setIsOpen(false);
+      return;
+    }
+
     const remoteCode = parseInt(config.versionCode, 10) || 0;
     const remoteVersion = config.version || '1.0.0';
     const isOutdated = remoteCode > APP_VERSION_CODE || compareVersions(remoteVersion, APP_VERSION) > 0;
-    const isForceUpdate = config.forceUpdate || (config.minVersionCode && APP_VERSION_CODE < parseInt(config.minVersionCode, 10));
+    const isForceUpdate = Boolean(config.forceUpdate) || (config.minVersionCode && APP_VERSION_CODE < parseInt(config.minVersionCode, 10));
 
     if (isOutdated) {
       // Check snooze only if not a forced update
@@ -48,6 +55,7 @@ export default function AppUpdateModal() {
         const snoozedUntil = localStorage.getItem(`${SNOOZE_KEY}${remoteVersion}`);
         if (snoozedUntil && Date.now() < parseInt(snoozedUntil, 10)) {
           console.log(`[Update] Version ${remoteVersion} snoozée jusqu'à:`, new Date(parseInt(snoozedUntil, 10)));
+          setIsOpen(false);
           return;
         }
       }
@@ -56,6 +64,9 @@ export default function AppUpdateModal() {
         isForceUpdate
       });
       setIsOpen(true);
+    } else {
+      // Version à jour : fermer le modal s'il était ouvert
+      setIsOpen(false);
     }
   };
 
@@ -86,8 +97,8 @@ export default function AppUpdateModal() {
       evaluateVersion(config);
     });
 
-    // 3. Periodic check every 30 minutes
-    const periodicTimer = setInterval(checkVersion, 30 * 60 * 1000);
+    // 3. Periodic check every 15 minutes
+    const periodicTimer = setInterval(checkVersion, 15 * 60 * 1000);
 
     return () => {
       socket.disconnect();
@@ -104,35 +115,65 @@ export default function AppUpdateModal() {
   const handleUpdateClick = () => {
     if (isNative) {
       setDownloading(true);
-      // Open APK download in system browser / download manager
-      window.location.href = apkUrl;
-      // Also open via standard fallback
+      setDownloadStarted(true);
+
+      // Lancer le téléchargement de l'APK
+      try {
+        window.location.href = apkUrl;
+      } catch (e) {
+        console.warn('window.location download error:', e);
+      }
+
+      // Fallback via tag anchor
       setTimeout(() => {
-        const link = document.createElement('a');
-        link.href = apkUrl;
-        link.setAttribute('download', 'PrixOr.apk');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }, 500);
+        try {
+          const link = document.createElement('a');
+          link.href = apkUrl;
+          link.setAttribute('download', 'PrixOr.apk');
+          link.setAttribute('target', '_blank');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch (err) {
+          console.warn('Fallback download error:', err);
+        }
+        setDownloading(false);
+      }, 600);
     } else {
-      // Mobile Web / PWA: Refresh cache & reload
+      // Mobile Web / PWA / iPhone
       setDownloading(true);
+      sessionStorage.setItem('prixor_update_applied_at', Date.now().toString());
+
+      // Notifier et forcer la mise à jour des Service Workers
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           for (const registration of registrations) {
-            registration.update();
+            if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            if (registration.installing) registration.installing.postMessage({ type: 'SKIP_WAITING' });
+            registration.update().catch(() => {});
           }
-        });
+        }).catch(() => {});
       }
+
+      // Nettoyer les caches locaux pour forcer les nouveaux fichiers
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          return Promise.all(names.map((name) => caches.delete(name)));
+        }).catch(() => {});
+      }
+
+      // Fermer le popup immédiatement et recharger avec paramètre anti-cache
       setTimeout(() => {
-        window.location.reload(true);
-      }, 800);
+        setIsOpen(false);
+        const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
+        const sep = cleanUrl.includes('?') ? '&' : '?';
+        window.location.replace(`${cleanUrl}${sep}updated=${Date.now()}`);
+      }, 600);
     }
   };
 
-  const handleSnooze = () => {
-    if (updateInfo.isForceUpdate) return;
+  const handleCloseOrSnooze = () => {
+    if (updateInfo.isForceUpdate && !downloadStarted) return;
     // Snooze for 12 hours
     const twelveHoursLater = Date.now() + 12 * 60 * 60 * 1000;
     localStorage.setItem(`${SNOOZE_KEY}${remoteVersion}`, twelveHoursLater.toString());
@@ -155,6 +196,32 @@ export default function AppUpdateModal() {
   return (
     <div className="app-update-overlay" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="app-update-card">
+        {/* Close button if not forced */}
+        {!updateInfo.isForceUpdate && (
+          <button 
+            type="button" 
+            onClick={handleCloseOrSnooze}
+            className="app-update-close-btn"
+            style={{
+              position: 'absolute',
+              top: '14px',
+              [isRtl ? 'left' : 'right']: '14px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#94a3b8',
+              cursor: 'pointer'
+            }}
+          >
+            <X size={18} />
+          </button>
+        )}
+
         {/* Badge Icon */}
         <div className="app-update-badge-container">
           <div className="app-update-icon-wrapper">
@@ -180,91 +247,119 @@ export default function AppUpdateModal() {
         {/* Message */}
         <p className="app-update-message">{message}</p>
 
-        {/* Release Notes */}
-        {notes && (
-          <div className="app-update-notes-box">
-            <div className="app-update-notes-title">
-              <CheckCircle2 size={16} />
-              <span>{lang === 'ar' ? 'ما الجديد في هذا الإصدار :' : 'Nouveautés de cette version :'}</span>
+        {/* Download Feedback State for APK */}
+        {downloadStarted ? (
+          <div className="app-update-success-box">
+            <div className="app-update-success-icon">
+              <CheckCircle2 size={32} />
             </div>
-            <div className="app-update-notes-list">{notes}</div>
-          </div>
-        )}
-
-        {/* Force Update Banner */}
-        {updateInfo.isForceUpdate && (
-          <div className="app-update-force-banner">
-            <AlertTriangle size={18} />
-            <span>
+            <div className="app-update-success-title">
+              {lang === 'ar' ? 'تم بدء تحميل التحديث بنجاح!' : 'Téléchargement de l\'APK démarré !'}
+            </div>
+            <p className="app-update-success-desc">
               {lang === 'ar' 
-                ? 'هذا التحديث إجباري لمتابعة استخدام التطبيق.' 
-                : 'Cette mise à jour est obligatoire pour continuer.'}
-            </span>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="app-update-actions">
-          <button 
-            type="button" 
-            className="app-update-btn-primary"
-            onClick={handleUpdateClick}
-          >
-            {isNative ? (
-              <>
-                <Download size={20} />
-                <span>
-                  {downloading
-                    ? (lang === 'ar' ? 'جاري بدء التحميل...' : 'Téléchargement...')
-                    : (lang === 'ar' ? 'تحميل وتثبيت التحديث (APK)' : 'Télécharger & Installer la MàJ')}
-                </span>
-              </>
-            ) : (
-              <>
-                <RefreshCw size={20} className={downloading ? 'spin' : ''} />
-                <span>
-                  {downloading 
-                    ? (lang === 'ar' ? 'جاري التحديث...' : 'Actualisation...')
-                    : (lang === 'ar' ? 'تحديث التطبيق الآن' : 'Actualiser l\'application')}
-                </span>
-              </>
-            )}
-          </button>
-
-          {!updateInfo.isForceUpdate && (
+                ? 'تفقد شريط الإشعارات أو ملفات التنزيل على هاتفك، ثم اضغط على PrixOr.apk لتثبيت النسخة الجديدة.' 
+                : 'Consultez le panneau des notifications ou le dossier Téléchargements de votre téléphone, puis cliquez sur PrixOr.apk pour l\'installer.'}
+            </p>
             <button
               type="button"
-              className="app-update-btn-secondary"
-              onClick={handleSnooze}
+              className="app-update-btn-primary"
+              style={{ marginTop: '0.85rem' }}
+              onClick={() => setIsOpen(false)}
             >
-              {lang === 'ar' ? 'تذكير لاحقاً' : 'Plus tard'}
+              {lang === 'ar' ? 'فهمت، إغلاق النافذة' : 'Compris, fermer la fenêtre'}
             </button>
-          )}
-        </div>
-
-        {/* Helper guide */}
-        {isNative && (
-          <div className="app-update-instruction">
-            {lang === 'ar' ? (
-              <>💡 <strong>ملاحظة:</strong> بعد اكتمال التحميل، اضغط على الملف في شريط الإشعارات لتثبيته.</>
-            ) : (
-              <>💡 <strong>Note :</strong> Une fois le téléchargement terminé, cliquez sur le fichier dans les notifications pour l'installer.</>
+          </div>
+        ) : (
+          <>
+            {/* Release Notes */}
+            {notes && (
+              <div className="app-update-notes-box">
+                <div className="app-update-notes-title">
+                  <CheckCircle2 size={16} />
+                  <span>{lang === 'ar' ? 'ما الجديد في هذا الإصدار :' : 'Nouveautés de cette version :'}</span>
+                </div>
+                <div className="app-update-notes-list">{notes}</div>
+              </div>
             )}
-          </div>
-        )}
 
-        {!isNative && isMobile && (
-          <div className="app-update-instruction">
-            <a 
-              href={apkUrl} 
-              style={{ color: '#d4af37', textDecoration: 'underline' }}
-              download="PrixOr.apk"
-            >
-              {lang === 'ar' 
-                ? '📱 أو قم بتنزيل تطبيق أندرويد الرسمي (APK)' 
-                : '📱 Ou téléchargez l\'application officielle Android (APK)'}
-            </a>
-          </div>
+            {/* Force Update Banner */}
+            {updateInfo.isForceUpdate && (
+              <div className="app-update-force-banner">
+                <AlertTriangle size={18} />
+                <span>
+                  {lang === 'ar' 
+                    ? 'هذا التحديث إجباري لمتابعة استخدام التطبيق.' 
+                    : 'Cette mise à jour est obligatoire pour continuer.'}
+                </span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="app-update-actions">
+              <button 
+                type="button" 
+                className="app-update-btn-primary"
+                onClick={handleUpdateClick}
+                disabled={downloading}
+              >
+                {isNative ? (
+                  <>
+                    <Download size={20} className={downloading ? 'spin' : ''} />
+                    <span>
+                      {downloading
+                        ? (lang === 'ar' ? 'جاري بدء التحميل...' : 'Téléchargement...')
+                        : (lang === 'ar' ? 'تحميل وتثبيت التحديث (APK)' : 'Télécharger & Installer la MàJ')}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={20} className={downloading ? 'spin' : ''} />
+                    <span>
+                      {downloading 
+                        ? (lang === 'ar' ? 'جاري التحديث...' : 'Actualisation en cours...')
+                        : (lang === 'ar' ? 'تحديث التطبيق الآن' : 'Mettre à jour l\'application')}
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {!updateInfo.isForceUpdate && (
+                <button
+                  type="button"
+                  className="app-update-btn-secondary"
+                  onClick={handleCloseOrSnooze}
+                >
+                  {lang === 'ar' ? 'تذكير لاحقاً' : 'Plus tard'}
+                </button>
+              )}
+            </div>
+
+            {/* Helper guide */}
+            {isNative && (
+              <div className="app-update-instruction">
+                {lang === 'ar' ? (
+                  <>💡 <strong>ملاحظة:</strong> بعد اكتمال التحميل، اضغط على الملف في شريط الإشعارات لتثبيته.</>
+                ) : (
+                  <>💡 <strong>Note :</strong> Une fois le téléchargement terminé, cliquez sur le fichier dans les notifications pour l'installer.</>
+                )}
+              </div>
+            )}
+
+            {!isNative && isMobile && (
+              <div className="app-update-instruction">
+                <a 
+                  href={apkUrl} 
+                  style={{ color: '#d4af37', textDecoration: 'underline' }}
+                  download="PrixOr.apk"
+                >
+                  {lang === 'ar' 
+                    ? '📱 أو قم بتنزيل تطبيق أندرويد الرسمي (APK)' 
+                    : '📱 Ou téléchargez l\'application officielle Android (APK)'}
+                </a>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

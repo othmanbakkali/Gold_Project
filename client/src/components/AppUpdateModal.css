@@ -289,3 +289,43 @@
   right: auto;
   left: -4px;
 }
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.app-update-success-box {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  border-radius: 16px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  color: #ecfdf5;
+  animation: updateFadeIn 0.3s ease-out;
+}
+
+.app-update-success-icon {
+  color: #10b981;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.app-update-success-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #34d399;
+  margin-bottom: 0.4rem;
+}
+
+.app-update-success-desc {
+  font-size: 0.88rem;
+  color: #d1fae5;
+  line-height: 1.5;
+}

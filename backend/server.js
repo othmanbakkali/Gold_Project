@@ -500,52 +500,85 @@ async function sendPriceNotification(priceData) {
     for (const [lang, tokens] of Object.entries(langGroups)) {
       const t = translations[lang] || translations['ar'];
 
-      const message = {
-        notification: {
-          title: t.title,
-          body: t.body,
-        },
-        data: {
-          price: String(priceData.price),
-          currency: priceData.currency || 'MAD',
-          unit: priceData.unit || 'g',
-          date: priceData.date || new Date().toISOString(),
-          type: 'priceUpdate',
-        },
-        android: {
-          priority: 'high',
+      // Batch tokens in chunks of 500 (Firebase multicast max is 500)
+      for (let i = 0; i < tokens.length; i += 500) {
+        const tokenChunk = tokens.slice(i, i + 500);
+        const message = {
           notification: {
-            channelId: 'gold_price_updates',
-            color: '#fbbf24',
-            icon: 'ic_notification',
-            sound: 'default',
+            title: t.title,
+            body: t.body,
           },
-        },
-        tokens: tokens,
-      };
+          data: {
+            price: String(priceData.price),
+            currency: priceData.currency || 'MAD',
+            unit: priceData.unit || 'g',
+            date: priceData.date || new Date().toISOString(),
+            type: 'priceUpdate',
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              channelId: 'gold_price_updates',
+              color: '#fbbf24',
+              icon: 'ic_notification',
+              sound: 'default',
+            },
+          },
+          webpush: {
+            notification: {
+              title: t.title,
+              body: t.body,
+              icon: '/icon.png',
+              badge: '/favicon.svg',
+              vibrate: [200, 100, 200],
+              tag: 'price-update',
+              renotify: true,
+            },
+            fcmOptions: {
+              link: '/',
+            },
+            headers: {
+              Urgency: 'high',
+            },
+          },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: t.title,
+                  body: t.body,
+                },
+                sound: 'default',
+                badge: 1,
+              },
+            },
+          },
+          tokens: tokenChunk,
+        };
 
-      try {
-        const response = await firebaseMessaging.sendEachForMulticast(message);
-        console.log(`📲 Notifications [${lang}] envoyées: ${response.successCount}/${tokens.length} succès`);
+        try {
+          const response = await firebaseMessaging.sendEachForMulticast(message);
+          console.log(`📲 Notifications [${lang}] envoyées: ${response.successCount}/${tokenChunk.length} succès`);
 
-        // Clean invalid tokens
-        if (response.failureCount > 0) {
-          const tokensToDelete = [];
-          response.responses.forEach((resp, idx) => {
-            if (!resp.success) {
-              const code = resp.error && resp.error.code;
-              if (code === 'messaging/invalid-registration-token' || code === 'messaging/registration-token-not-registered') {
-                tokensToDelete.push(tokens[idx]);
+          // Clean invalid tokens
+          if (response.failureCount > 0) {
+            const tokensToDelete = [];
+            response.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                const code = resp.error && resp.error.code;
+                if (code === 'messaging/invalid-registration-token' || code === 'messaging/registration-token-not-registered') {
+                  tokensToDelete.push(tokenChunk[idx]);
+                }
               }
+            });
+            if (tokensToDelete.length > 0) {
+              const placeholders = tokensToDelete.map(() => '?').join(',');
+              db.run(`DELETE FROM fcm_tokens WHERE token IN (${placeholders})`, tokensToDelete);
             }
-          });
-          if (tokensToDelete.length > 0) {
-            const placeholders = tokensToDelete.map(() => '?').join(',');
-            db.run(`DELETE FROM fcm_tokens WHERE token IN (${placeholders})`, tokensToDelete);
           }
+        } catch (fcmErr) {
+          console.error(`Erreur envoi FCM [${lang}]:`, fcmErr.message);
         }
-      } catch (fcmErr) {
-        console.error(`Erreur envoi FCM [${lang}]:`, fcmErr.message);
       }
     }
   });
@@ -597,54 +630,86 @@ async function sendAppUpdateNotification(updateData) {
       for (const [lang, tokens] of Object.entries(langGroups)) {
         const t = translations[lang] || translations['ar'];
 
-        const message = {
-          notification: {
-            title: t.title,
-            body: t.body,
-          },
-          data: {
-            type: 'app_update',
-            version: String(version),
-            versionCode: String(updateData.versionCode || '3'),
-            forceUpdate: String(updateData.forceUpdate ? 'true' : 'false'),
-            apkUrl: updateData.apkUrl || 'https://goldprojectbackend-production.up.railway.app/PrixOr.apk',
-            date: new Date().toISOString(),
-          },
-          android: {
-            priority: 'high',
+        for (let i = 0; i < tokens.length; i += 500) {
+          const tokenChunk = tokens.slice(i, i + 500);
+          const message = {
             notification: {
-              channelId: 'gold_price_updates',
-              color: '#d4af37',
-              icon: 'ic_notification',
-              sound: 'default',
+              title: t.title,
+              body: t.body,
             },
-          },
-          tokens: tokens,
-        };
+            data: {
+              type: 'app_update',
+              version: String(version),
+              versionCode: String(updateData.versionCode || '3'),
+              forceUpdate: String(updateData.forceUpdate ? 'true' : 'false'),
+              apkUrl: updateData.apkUrl || 'https://goldprojectbackend-production.up.railway.app/PrixOr.apk',
+              date: new Date().toISOString(),
+            },
+            android: {
+              priority: 'high',
+              notification: {
+                channelId: 'gold_price_updates',
+                color: '#d4af37',
+                icon: 'ic_notification',
+                sound: 'default',
+              },
+            },
+            webpush: {
+              notification: {
+                title: t.title,
+                body: t.body,
+                icon: '/icon.png',
+                badge: '/favicon.svg',
+                vibrate: [200, 100, 200],
+                tag: 'app-update',
+                renotify: true,
+              },
+              fcmOptions: {
+                link: '/',
+              },
+              headers: {
+                Urgency: 'high',
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  alert: {
+                    title: t.title,
+                    body: t.body,
+                  },
+                  sound: 'default',
+                  badge: 1,
+                },
+              },
+            },
+            tokens: tokenChunk,
+          };
 
-        try {
-          const response = await firebaseMessaging.sendEachForMulticast(message);
-          totalSuccess += response.successCount;
-          console.log(`📲 Notifications MàJ Mobile [${lang}] envoyées: ${response.successCount}/${tokens.length} succès`);
+          try {
+            const response = await firebaseMessaging.sendEachForMulticast(message);
+            totalSuccess += response.successCount;
+            console.log(`📲 Notifications MàJ Mobile [${lang}] envoyées: ${response.successCount}/${tokenChunk.length} succès`);
 
-          // Nettoyer les tokens invalides
-          if (response.failureCount > 0) {
-            const tokensToDelete = [];
-            response.responses.forEach((resp, idx) => {
-              if (!resp.success) {
-                const code = resp.error && resp.error.code;
-                if (code === 'messaging/invalid-registration-token' || code === 'messaging/registration-token-not-registered') {
-                  tokensToDelete.push(tokens[idx]);
+            // Nettoyer les tokens invalides
+            if (response.failureCount > 0) {
+              const tokensToDelete = [];
+              response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                  const code = resp.error && resp.error.code;
+                  if (code === 'messaging/invalid-registration-token' || code === 'messaging/registration-token-not-registered') {
+                    tokensToDelete.push(tokenChunk[idx]);
+                  }
                 }
+              });
+              if (tokensToDelete.length > 0) {
+                const placeholders = tokensToDelete.map(() => '?').join(',');
+                db.run(`DELETE FROM fcm_tokens WHERE token IN (${placeholders})`, tokensToDelete);
               }
-            });
-            if (tokensToDelete.length > 0) {
-              const placeholders = tokensToDelete.map(() => '?').join(',');
-              db.run(`DELETE FROM fcm_tokens WHERE token IN (${placeholders})`, tokensToDelete);
             }
+          } catch (fcmErr) {
+            console.error(`Erreur envoi FCM MàJ Mobile [${lang}]:`, fcmErr.message);
           }
-        } catch (fcmErr) {
-          console.error(`Erreur envoi FCM MàJ Mobile [${lang}]:`, fcmErr.message);
         }
       }
 

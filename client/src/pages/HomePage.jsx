@@ -297,8 +297,9 @@ export default function HomePage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     const stored = localStorage.getItem('notifications_enabled');
     if (stored !== null) return stored === 'true';
-    return 'Notification' in window && Notification.permission === 'granted';
+    return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
   });
+  const [notifBannerDismissed, setNotifBannerDismissed] = useState(() => sessionStorage.getItem('dismiss_notif_banner') === 'true');
   const audioRef = useRef(null);
 
   const t = translations[lang] || translations['ar'];
@@ -607,26 +608,18 @@ export default function HomePage() {
               setNotificationsEnabled(false);
               alert(lang === 'ar' ? 'تم إيقاف التنبيهات' : 'Notifications désactivées');
             } else {
-              if ('Notification' in window) {
-                try {
-                  const permission = await Notification.requestPermission();
-                  if (permission === 'granted') {
-                    localStorage.setItem('notifications_enabled', 'true');
-                    const success = await notificationService.init();
-                    if (success) {
-                      setNotificationsEnabled(true);
-                      alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
-                    } else {
-                      alert(lang === 'ar' ? 'حدث خطأ أثناء تفعيل التنبيهات' : 'Erreur lors de l\'activation des notifications');
-                    }
-                  } else {
-                    alert(lang === 'ar' ? 'يرجى السماح بالتنبيهات في إعدادات متصفحك' : 'Veuillez autoriser les notifications dans les réglages de votre navigateur');
-                  }
-                } catch (err) {
-                  console.error("Error requesting notification permission:", err);
-                }
+              const res = await notificationService.requestPermissionAndRegister();
+              if (res.success) {
+                setNotificationsEnabled(true);
+                alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
+              } else if (res.reason === 'ios_not_standalone') {
+                alert(lang === 'ar' 
+                  ? '📱 على هواتف آيفون (iPhone):\nيرجى أولاً إضافة التطبيق إلى الشاشة الرئيسية (زر المشاركة ⎋ ثم "إضافة إلى الشاشة الرئيسية") ثم فتح التطبيق وتفعيل التنبيهات.' 
+                  : '📱 Sur iPhone :\nVeuillez d\'abord ajouter l\'application à l\'écran d\'accueil (Partager ⎋ -> « Sur l\'écran d\'accueil »), puis ouvrir l\'application pour activer les notifications.');
+              } else if (res.reason === 'permission_denied') {
+                alert(lang === 'ar' ? 'يرجى السماح بالتنبيهات في إعدادات متصفحك أو هاتفك' : 'Veuillez autoriser les notifications dans les réglages de votre appareil');
               } else {
-                alert(lang === 'ar' ? 'متصفحك لا يدعم التنبيهات' : 'Votre navigateur ne supporte pas les notifications');
+                alert(lang === 'ar' ? 'تعذر تفعيل التنبيهات على هذا الجهاز' : 'Impossible d\'activer les notifications sur cet appareil');
               }
             }
           }}>
@@ -687,6 +680,42 @@ export default function HomePage() {
               {lang === 'ar' ? 'تثبيت الآن' : 'Installer'}
             </button>
             <button className="hp-install-close" onClick={() => setDeferredPrompt(null)}><X size={16} /></button>
+          </div>
+        )}
+
+        {/* NOTIFICATION ENABLE BANNER */}
+        {!notificationsEnabled && !notifBannerDismissed && (
+          <div className="hp-install-banner hp-notification-banner" style={{ background: 'linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(15, 23, 42, 0.96) 100%)', border: '1.5px solid #d4af37' }}>
+            <div className="hp-install-info">
+              <Bell size={20} style={{ color: '#d4af37', flexShrink: 0 }} />
+              <span>{lang === 'ar' ? 'فعّل إشعارات الهاتف لتصلك تحديثات أسعار الذهب أولاً بأول' : 'Activez les notifications pour recevoir les alertes de prix en temps réel'}</span>
+            </div>
+            <button className="hp-install-btn" onClick={async () => {
+              const res = await notificationService.requestPermissionAndRegister();
+              if (res.success) {
+                setNotificationsEnabled(true);
+                alert(lang === 'ar' ? 'تم تفعيل التنبيهات بنجاح!' : 'Notifications activées avec succès !');
+              } else if (res.reason === 'ios_not_standalone') {
+                alert(lang === 'ar' 
+                  ? '📱 على هواتف آيفون (iPhone):\nيرجى أولاً إضافة التطبيق إلى الشاشة الرئيسية (زر المشاركة ⎋ ثم "إضافة إلى الشاشة الرئيسية") ثم فتح التطبيق وتفعيل التنبيهات.' 
+                  : '📱 Sur iPhone :\nVeuillez d\'abord ajouter l\'application à l\'écran d\'accueil (Partager ⎋ -> « Sur l\'écran d\'accueil »), puis ouvrir l\'application pour activer les notifications.');
+              } else if (res.reason === 'permission_denied') {
+                alert(lang === 'ar' ? 'يرجى السماح بالتنبيهات في إعدادات متصفحك أو هاتفك' : 'Veuillez autoriser les notifications dans les réglages de votre appareil');
+              } else {
+                alert(lang === 'ar' ? 'تعذر تفعيل التنبيهات على هذا الجهاز' : 'Impossible d\'activer les notifications sur cet appareil');
+              }
+            }}>
+              {lang === 'ar' ? 'تفعيل الآن' : 'Activer'}
+            </button>
+            <button 
+              className="hp-install-close" 
+              onClick={() => {
+                setNotifBannerDismissed(true);
+                sessionStorage.setItem('dismiss_notif_banner', 'true');
+              }}
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
 
